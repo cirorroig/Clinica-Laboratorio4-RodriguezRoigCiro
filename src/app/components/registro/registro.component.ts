@@ -9,7 +9,8 @@ import {
 import {
   Auth,
   createUserWithEmailAndPassword,
-  Unsubscribe,
+  sendEmailVerification,
+  signOut,
 } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import {
@@ -30,12 +31,12 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [FormsModule, ReactiveFormsModule, CommonModule],
   templateUrl: './registro.component.html',
-  styleUrl: './registro.component.css'
+  styleUrls: ['./registro.component.css']
 })
 export class RegistroComponent {
   registrationForm: FormGroup;
   errorMessage?: string;
-  authSubscription?: Unsubscribe;
+  successMessage?: string;
   userType: 'patient' | 'specialist' = 'patient';
   imageFiles: File[] = [];
   specialties: string[] = ['Cardiología', 'Dermatología', 'Pediatría', 'Traumatología'];
@@ -56,29 +57,10 @@ export class RegistroComponent {
       dni: ['', [Validators.required, Validators.pattern('^[0-9]{8}$')]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      // Campos específicos para pacientes
       obraSocial: [''],
-      // Campos específicos para especialistas
       especialidad: [''],
       newSpecialty: ['']
     });
-  }
-
-  ngOnInit() {
-    this.authSubscription = this.auth.onAuthStateChanged((auth) => {
-      if (auth?.email) {
-        this.router.navigateByUrl('');
-      }
-    });
-
-    // Actualizar validaciones según el tipo de usuario
-    this.updateFormValidations();
-  }
-
-  ngOnDestroy(): void {
-    if (this.authSubscription) {
-      this.authSubscription();
-    }
   }
 
   updateFormValidations() {
@@ -140,16 +122,21 @@ export class RegistroComponent {
         this.auth,
         this.registrationForm.get('email')?.value,
         this.registrationForm.get('password')?.value
-      );
+      )
+      signOut(this.auth);
 
-      // 2. Subir imágenes al Storage
+
+      // 2. Enviar email de verificación
+      await sendEmailVerification(userCredential.user);
+
+      // 3. Subir imágenes al Storage
       const imageUrls: string[] = [];
       for (let i = 0; i < this.imageFiles.length; i++) {
         const url = await this.uploadImage(this.imageFiles[i], userCredential.user.uid, i);
         imageUrls.push(url);
       }
 
-      // 3. Guardar datos en Firestore
+      // 4. Guardar datos en Firestore
       const userData = {
         uid: userCredential.user.uid,
         nombre: this.registrationForm.get('nombre')?.value,
@@ -160,6 +147,7 @@ export class RegistroComponent {
         perfil: this.userType,
         imageUrls: imageUrls,
         fechaRegistro: new Date().toISOString(),
+        habilitado: this.userType === 'patient', // Pacientes habilitados por defecto, especialistas requieren aprobación
         ...(this.userType === 'patient' ? {
           obraSocial: this.registrationForm.get('obraSocial')?.value
         } : {
@@ -169,7 +157,11 @@ export class RegistroComponent {
 
       await addDoc(collection(this.firestore, 'usuarios'), userData);
 
-      this.router.navigate(['/home']);
+      this.successMessage = 'Registro exitoso. Por favor, verifica tu correo electrónico para continuar.';
+      if (this.userType === 'specialist') {
+        this.successMessage += ' Un administrador revisará y habilitará tu cuenta próximamente.';
+      }
+
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         this.errorMessage = 'El correo electrónico ya está en uso. Por favor, use otro.';
