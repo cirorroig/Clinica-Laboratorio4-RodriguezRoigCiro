@@ -1,0 +1,93 @@
+.contenedor {
+  margin-top: 100px;
+
+}
+
+/* Estilos para la lista de categorías */
+.categoria-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.categoria-btn {
+  padding: 15px;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+}
+
+/* Estilos para el contenedor de la imagen */
+.imagen{
+  width: 300px;
+  height: 300px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Estilos para la tarjeta de preguntas */
+.card {
+  height: 100%;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.card-title {
+  font-weight: bold;
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Estilos para los botones de respuesta */
+.btn-outline-primary {
+  margin-bottom: 10px;
+  padding: 10px 15px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+  transform: translateY(-2px);
+}
+
+/* Estilos para la barra de progreso */
+.progress {
+  height: 10px;
+  margin-top: 20px;
+  background-color: #e9ecef;
+}
+
+.progress-bar {
+  background-color: #007bff;
+}
+
+/* Estilos para el footer con puntaje y número de pregunta */
+.col-4 {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.col-4 h4 {
+  margin-bottom: 0;
+  font-size: 1.1rem;
+}
+
+/* Estilos para el botón de volver a categorías */
+.col-4.text-center .btn-secondary {
+  padding: 10px 20px;
+}
+
+/* Estilos para la alerta de resultado */
+.alert {
+  margin-top: 20px;
+  text-align: center;
+  font-weight: bold;
+}

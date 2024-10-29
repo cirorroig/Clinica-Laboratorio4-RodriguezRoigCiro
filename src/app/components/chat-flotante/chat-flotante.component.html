@@ -1,0 +1,21 @@
+@if(chatAbierto){
+  <div class="chat-container">
+    <div class="chat-mensajes" #mensajesContainer>
+      @for(mensaje of mensajes$ | async; track mensaje.usuario + mensaje.fecha.toMillis()) {
+        <div [ngClass]="{ 'mensaje-propio': mensaje.usuario === emailUsuario, 'mensaje-otro': mensaje.usuario !== emailUsuario }">
+          <strong>{{ mensaje.usuario }}</strong>: {{ mensaje.mensaje }}
+          <span class="hora">{{ mensaje.fecha.toDate() | date: 'shortTime' }}</span>
+        </div>
+      }
+    </div>
+    <div class="chat-input">
+      <input
+        type="text"
+        [(ngModel)]="nuevoMensaje"
+        (keydown)="manejarTecla($event)"
+        placeholder="Escribe un mensaje..."
+        class="form-control" />
+    </div>
+  </div>
+}
+<button (click)="alternarChat()" class="chat-toggle-btn btn btn-primary">💬</button>

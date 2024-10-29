@@ -1,0 +1,33 @@
+
+.form-control-dark {
+    border-color: var(--bs-gray);
+  }
+  .form-control-dark:focus {
+    border-color: #fff;
+    box-shadow: 0 0 0 .25rem rgba(255, 255, 255, .25);
+  }
+  
+  .text-small {
+    font-size: 85%;
+  }
+  
+  .dropdown-toggle:not(:focus) {
+    outline: 0;
+  }
+  .custom-header {
+    background-color: #47077c; /* Cambia este valor por el color deseado */
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1030; /* Asegúrate de que el header esté por encima de otros elementos */
+}
+
+.custom-header .container {
+    background-color: #47077c; 
+}
+.card-img-top {
+  width: 100%; /* Ocupa todo el ancho del card */
+  height: 300px; /* Altura fija */
+  object-fit: cover; /* Mantiene la proporción de la imagen y recorta si es necesario */
+}

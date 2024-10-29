@@ -1,0 +1,77 @@
+<div class="container contenedor">
+  <h1 class="text-center mb-4">Preguntados</h1>
+  
+  @if (mostrarCategorias) {
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <h3 class="text-center mb-3">Categorías</h3>
+        <div class="categoria-list d-flex flex-column">
+          @for (categoria of categorias; track categoria.nombre) {
+            <button class="btn btn-lg mb-2 categoria-btn {{ categoria.color }}"
+                    (click)="seleccionarCategoria(categoria)">
+              {{ categoria.nombre }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="row">
+      <div class="col-12 mb-4">
+        <h3 class="text-center">Categoría: {{ categoriaSeleccionada }}</h3>
+      </div>
+      
+      @if (preguntaActual) {
+        <div class="col-md-6">
+          <div class="card h-100">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">{{ preguntaActual.question }}</h5>
+              <div class="mt-3 flex-grow-1 d-flex flex-column justify-content-center">
+                @for (respuesta of respuestasMezcladas; track respuesta) {
+                  <button class="btn btn-outline-primary mb-2"
+                          (click)="verificarRespuesta(respuesta)">
+                    {{ respuesta }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="imagen">
+          @if (imagenUrl) {
+            <img [src]="imagenUrl" alt="Imagen de la pregunta" class="img-fluid w-100 h-100 object-fit-cover">
+          }
+        </div>
+        
+        <div class="col-12 mt-3">
+          <div class="progress">
+            <div class="progress-bar" role="progressbar" [style.width.%]="progreso" [attr.aria-valuenow]="progreso" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        </div>
+        
+        <div class="col-4 mt-3">
+          <h4>Puntaje: {{ puntaje }}</h4>
+        </div>
+        
+        <div class="col-4 mt-3 text-center">
+          <button class="btn btn-secondary" (click)="volverACategorias()">Volver a Categorías</button>
+        </div>
+        
+        <div class="col-4 mt-3 text-right">
+          <h4>Pregunta {{ preguntaActualIndex + 1 }}/{{ totalPreguntas }}</h4>
+        </div>
+      }
+    </div>
+    
+    @if (mostrarResultado) {
+      <div class="row mt-3">
+        <div class="col-12">
+          <div class="alert" [ngClass]="esCorrecto ? 'alert-success' : 'alert-danger'" role="alert">
+            {{ esCorrecto ? '¡Correcto!' : 'Incorrecto. La respuesta correcta es: ' + preguntaActual?.correctAnswers }}
+          </div>
+        </div>
+      </div>
+    }
+  }
+</div>

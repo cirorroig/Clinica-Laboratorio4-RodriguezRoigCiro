@@ -1,0 +1,82 @@
+
+<header class="fixed-top custom-header">
+  <div class="px-3 py-2 border-bottom">
+    <div class="container">
+      <div
+        class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start"
+      >
+        <a
+          (click)="navigateTo('/home')"
+          class="d-flex align-items-center my-2 my-lg-0 me-lg-auto text-white text-decoration-none"
+        >
+          <img src="logo.png" alt="Logo" width="40" height="32" class="me-2" />
+        </a>
+
+        <ul
+          class="nav col-12 col-lg-auto my-2 justify-content-center my-md-0 text-small"
+        >
+          <li>
+            <a
+              (click)="navigateTo('/home')"
+              class="nav-link text-white d-flex flex-column align-items-center"
+            >
+              <i class="bi bi-house-door" style="font-size: 24px"></i>
+              Inicio
+            </a>
+          </li>
+          <li>
+            <a
+              (click)="navigateTo('/quien-soy')"
+              class="nav-link text-white d-flex flex-column align-items-center"
+            >
+              <i class="bi bi-person" style="font-size: 24px"></i>
+              Quien Soy
+            </a>
+          </li>
+
+          @if(!isLoggedIn){
+
+          <li>
+            <a
+              (click)="navigateTo('/login')"
+              class="nav-link text-white d-flex flex-column align-items-center"
+            >
+              <i class="bi bi-box-arrow-in-right" style="font-size: 24px"></i>
+              Iniciar Sesión
+            </a>
+          </li>
+          <li>
+            <a
+              (click)="navigateTo('/registro')"
+              class="nav-link text-white d-flex flex-column align-items-center"
+            >
+              <i class="bi bi-pencil-square" style="font-size: 24px"></i>
+              Registrarse
+            </a>
+          </li>
+          } @else{
+          <li class="nav-item flex-column text-center">
+            <span class="nav-link text-white">Bienvenido</span>
+            <span class="nav-link text-white">{{ userEmail }}</span>
+          </li>
+          <li>
+            <a
+              (click)="cerrarSesion()"
+              class="nav-link text-white d-flex flex-column align-items-center"
+            >
+              <i class="bi bi-box-arrow-right" style="font-size: 24px"></i>
+              Cerrar Sesión
+            </a>
+          </li>
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+</header>
+
+<router-outlet></router-outlet>
+@if (isLoggedIn) {
+<app-chat-flotante></app-chat-flotante>
+
+}
