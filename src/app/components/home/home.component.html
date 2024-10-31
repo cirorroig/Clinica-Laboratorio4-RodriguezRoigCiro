@@ -1,51 +1,12 @@
-<!-- Main Content -->
-<main class="mt-5 pt-5">
-    
-    <div class="container mt-4">
-        <div class="row justify-content-center">
-            <!-- Card 1 -->
-            <div class="col-md-3 mb-4">
-                <div class="card text-center">
-                    <img src="ahorcado.jpg" class="card-img-top" alt="Imagen del juego 1">
-                    <div class="card-body">
-                        <h5 class="card-title">Ahorcado</h5>
-                        <a (click)="navigateTo('/ahorcado')" class="btn btn-primary">Jugar</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 2 -->
-            <div class="col-md-3 mb-4">
-                <div class="card text-center">
-                    <img src="higherorlower.jpg" class="card-img-top" alt="Imagen del juego 2">
-                    <div class="card-body">
-                        <h5 class="card-title">Mayor o Menor</h5>
-                        <a (click)="navigateTo('/mayor-menor')" class="btn btn-primary">Jugar</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 3 -->
-            <div class="col-md-3 mb-4">
-                <div class="card text-center">
-                    <img src="preguntados.png" class="card-img-top" alt="Imagen del juego 3">
-                    <div class="card-body">
-                        <h5 class="card-title">Preguntados</h5>
-                        <a (click)="navigateTo('/preguntados')" class="btn btn-primary">Jugar</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 4 -->
-            <div class="col-md-3 mb-4">
-                <div class="card text-center">
-                    <img src="snake.avif" class="card-img-top" alt="Imagen del juego 4">
-                    <div class="card-body">
-                        <h5 class="card-title">Snake</h5>
-                        <a (click)="navigateTo('/snake')" class="btn btn-primary">Jugar</a>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="container contenedor text-center ">
+    <div class="card shadow-sm p-4">
+      <h1 class="mb-3">Bienvenidos a Clínica Salud y Vida</h1>
+      <p class="lead">Cuidamos de tu salud con profesionales altamente calificados y un ambiente de confianza.</p>
+  
+      <div class="mt-4">
+        <a (click)="navigateTo('/login')" class="btn btn-primary mx-2">Iniciar sesión</a>
+        <a (click)="navigateTo('/registro')" class="btn btn-secondary mx-2">Registrarse</a>
+      </div>
     </div>
-</main>
+</div>
+  

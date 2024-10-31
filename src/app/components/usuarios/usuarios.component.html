@@ -1,0 +1,327 @@
+<div class="container contenedor">
+    <div class="row mb-4">
+      <div class="col">
+        <h2>Gestión de Usuarios</h2>
+        <button class="btn btn-primary me-2" (click)="openAdminModal()">
+          Crear Administrador
+        </button>
+        <button class="btn btn-success me-2" (click)="openPatientModal()">
+          Crear Paciente
+        </button>
+        <button class="btn btn-info" (click)="openSpecialistModal()">
+          Crear Especialista
+        </button>
+      </div>
+    </div>
+  
+    <div class="row">
+      <div class="col">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Imagen</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Email</th>
+                <th>Perfil</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (user of users; track user.id) {
+                <tr>
+                  <td>
+                    <img [src]="user.imageUrls[0]" 
+                         alt="Perfil" 
+                         class="profile-img"
+                         *ngIf="user.imageUrls && user.imageUrls.length > 0">
+                  </td>
+                  <td>{{ user.nombre }}</td>
+                  <td>{{ user.apellido }}</td>
+                  <td>{{ user.email }}</td>
+                  <td>
+                    @switch (user.perfil) {
+                      @case ('admin') { Administrador }
+                      @case ('specialist') { Especialista }
+                      @case ('patient') { Paciente }
+                      @default { Desconocido }
+                    }
+                  </td>
+                  <td>
+                    @if (user.perfil === 'specialist') {
+                      <span [class]="user.habilitado ? 'badge bg-success' : 'badge bg-danger'">
+                        {{ user.habilitado ? 'Habilitado' : 'Deshabilitado' }}
+                      </span>
+                    }
+                  </td>
+                  <td>
+                    @if (user.perfil === 'specialist') {
+                      <button class="btn btn-sm" 
+                              [class.btn-danger]="user.habilitado"
+                              [class.btn-success]="!user.habilitado"
+                              (click)="toggleUserStatus(user)">
+                        {{ user.habilitado ? 'Deshabilitar' : 'Habilitar' }}
+                      </button>
+                    }
+                    <button class="btn btn-sm btn-danger ms-2" 
+                            (click)="deleteUser(user)">
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para crear administrador -->
+  <div class="modal" [class.show]="showAdminModal" [style.display]="showAdminModal ? 'block' : 'none'">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Registrar Administrador</h5>
+          <button type="button" class="btn-close" (click)="showAdminModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="adminForm">
+            <div class="mb-3">
+              <label for="nombre" class="form-label">Nombre</label>
+              <input type="text" class="form-control" id="nombre" formControlName="nombre"
+                     [class.is-invalid]="adminForm.get('nombre')?.invalid && adminForm.get('nombre')?.touched">
+              <div class="invalid-feedback" *ngIf="adminForm.get('nombre')?.invalid && adminForm.get('nombre')?.touched">
+                El nombre es requerido y debe tener al menos 2 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="apellido" class="form-label">Apellido</label>
+              <input type="text" class="form-control" id="apellido" formControlName="apellido"
+                     [class.is-invalid]="adminForm.get('apellido')?.invalid && adminForm.get('apellido')?.touched">
+              <div class="invalid-feedback" *ngIf="adminForm.get('apellido')?.invalid && adminForm.get('apellido')?.touched">
+                El apellido es requerido y debe tener al menos 2 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="edad" class="form-label">Edad</label>
+              <input type="number" class="form-control" id="edad" formControlName="edad"
+                     [class.is-invalid]="adminForm.get('edad')?.invalid && adminForm.get('edad')?.touched">
+              <div class="invalid-feedback" *ngIf="adminForm.get('edad')?.invalid && adminForm.get('edad')?.touched">
+                La edad debe estar entre 18 y 120 años
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="dni" class="form-label">DNI</label>
+              <input type="text" class="form-control" id="dni" formControlName="dni"
+                     [class.is-invalid]="adminForm.get('dni')?.invalid && adminForm.get('dni')?.touched">
+              <div class="invalid-feedback" *ngIf="adminForm.get('dni')?.invalid && adminForm.get('dni')?.touched">
+                El DNI debe tener 8 dígitos
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" formControlName="email"
+                     [class.is-invalid]="adminForm.get('email')?.invalid && adminForm.get('email')?.touched">
+              <div class="invalid-feedback" *ngIf="adminForm.get('email')?.invalid && adminForm.get('email')?.touched">
+                Ingrese un correo electrónico válido
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input type="password" class="form-control" id="password" formControlName="password"
+                     [class.is-invalid]="adminForm.get('password')?.invalid && adminForm.get('password')?.touched">
+              <div class="invalid-feedback" *ngIf="adminForm.get('password')?.invalid && adminForm.get('password')?.touched">
+                La contraseña debe tener al menos 6 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="imagen" class="form-label">Imagen de Perfil</label>
+              <input type="file" class="form-control" id="imagen" (change)="onAdminFileSelected($event)" accept="image/*">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showAdminModal = false">Cerrar</button>
+          <button type="button" class="btn btn-primary" (click)="createAdmin()" [disabled]="adminForm.invalid">Registrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para crear paciente -->
+  <div class="modal" [class.show]="showPatientModal" [style.display]="showPatientModal ? 'block' : 'none'">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Registrar Paciente</h5>
+          <button type="button" class="btn-close" (click)="showPatientModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="patientForm">
+            <div class="mb-3">
+              <label for="nombre" class="form-label">Nombre</label>
+              <input type="text" class="form-control" id="nombre" formControlName="nombre"
+                     [class.is-invalid]="patientForm.get('nombre')?.invalid && patientForm.get('nombre')?.touched">
+              <div class="invalid-feedback" *ngIf="patientForm.get('nombre')?.invalid && patientForm.get('nombre')?.touched">
+                El nombre es requerido y debe tener al menos 2 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="apellido" class="form-label">Apellido</label>
+              <input type="text" class="form-control" id="apellido" formControlName="apellido"
+                     [class.is-invalid]="patientForm.get('apellido')?.invalid && patientForm.get('apellido')?.touched">
+              <div class="invalid-feedback" *ngIf="patientForm.get('apellido')?.invalid && patientForm.get('apellido')?.touched">
+                El apellido es requerido y debe tener al menos 2 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="edad" class="form-label">Edad</label>
+              <input type="number" class="form-control" id="edad" formControlName="edad"
+                     [class.is-invalid]="patientForm.get('edad')?.invalid && patientForm.get('edad')?.touched">
+              <div class="invalid-feedback" *ngIf="patientForm.get('edad')?.invalid && patientForm.get('edad')?.touched">
+                La edad debe estar entre 1 y 120 años
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="dni" class="form-label">DNI</label>
+              <input type="text" class="form-control" id="dni" formControlName="dni"
+                     [class.is-invalid]="patientForm.get('dni')?.invalid && patientForm.get('dni')?.touched">
+              <div class="invalid-feedback" *ngIf="patientForm.get('dni')?.invalid && patientForm.get('dni')?.touched">
+                El DNI debe tener 8 dígitos
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" formControlName="email"
+                     [class.is-invalid]="patientForm.get('email')?.invalid && patientForm.get('email')?.touched">
+              <div class="invalid-feedback" *ngIf="patientForm.get('email')?.invalid && patientForm.get('email')?.touched">
+                Ingrese un correo electrónico válido
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input type="password" class="form-control" id="password" formControlName="password"
+                     [class.is-invalid]="patientForm.get('password')?.invalid && patientForm.get('password')?.touched">
+              <div class="invalid-feedback" *ngIf="patientForm.get('password')?.invalid && patientForm.get('password')?.touched">
+                La contraseña debe tener al menos 6 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="obraSocial" class="form-label">Obra Social</label>
+              <input type="text" class="form-control" id="obraSocial" formControlName="obraSocial"
+                     [class.is-invalid]="patientForm.get('obraSocial')?.invalid && patientForm.get('obraSocial')?.touched">
+              <div class="invalid-feedback" *ngIf="patientForm.get('obraSocial')?.invalid && patientForm.get('obraSocial')?.touched">
+                La obra social es requerida
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="imagen1" class="form-label">Imagen 1</label>
+              <input type="file" class="form-control" id="imagen1" (change)="onPatientFileSelected($event, 0)" accept="image/*">
+            </div>
+            <div class="mb-3">
+              <label for="imagen2" class="form-label">Imagen 2</label>
+              <input type="file" class="form-control" id="imagen2" (change)="onPatientFileSelected($event, 1)" accept="image/*">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showPatientModal = false">Cerrar</button>
+          <button type="button" class="btn btn-primary" (click)="registerPatient()" [disabled]="patientForm.invalid">Registrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para crear especialista -->
+  <div class="modal" [class.show]="showSpecialistModal" [style.display]="showSpecialistModal ? 'block' : 'none'">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Registrar Especialista</h5>
+          <button type="button" class="btn-close" (click)="showSpecialistModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="specialistForm">
+            <div class="mb-3">
+              <label for="nombre" class="form-label">Nombre</label>
+              <input type="text" class="form-control" id="nombre" formControlName="nombre"
+                     [class.is-invalid]="specialistForm.get('nombre')?.invalid && specialistForm.get('nombre')?.touched">
+              <div class="invalid-feedback" *ngIf="specialistForm.get('nombre')?.invalid && specialistForm.get('nombre')?.touched">
+                El nombre es requerido y debe tener al menos 2 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="apellido" class="form-label">Apellido</label>
+              <input type="text" class="form-control" id="apellido" formControlName="apellido"
+                     
+                     [class.is-invalid]="specialistForm.get('apellido')?.invalid && specialistForm.get('apellido')?.touched">
+              <div class="invalid-feedback" *ngIf="specialistForm.get('apellido')?.invalid && specialistForm.get('apellido')?.touched">
+                El apellido es requerido y debe tener al menos 2 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="edad" class="form-label">Edad</label>
+              <input type="number" class="form-control" id="edad" formControlName="edad"
+                     [class.is-invalid]="specialistForm.get('edad')?.invalid && specialistForm.get('edad')?.touched">
+              <div class="invalid-feedback" *ngIf="specialistForm.get('edad')?.invalid && specialistForm.get('edad')?.touched">
+                La edad debe estar entre 23 y 120 años
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="dni" class="form-label">DNI</label>
+              <input type="text" class="form-control" id="dni" formControlName="dni"
+                     [class.is-invalid]="specialistForm.get('dni')?.invalid && specialistForm.get('dni')?.touched">
+              <div class="invalid-feedback" *ngIf="specialistForm.get('dni')?.invalid && specialistForm.get('dni')?.touched">
+                El DNI debe tener 8 dígitos
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email</label>
+              <input type="email" class="form-control" id="email" formControlName="email"
+                     [class.is-invalid]="specialistForm.get('email')?.invalid && specialistForm.get('email')?.touched">
+              <div class="invalid-feedback" *ngIf="specialistForm.get('email')?.invalid && specialistForm.get('email')?.touched">
+                Ingrese un correo electrónico válido
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input type="password" class="form-control" id="password" formControlName="password"
+                     [class.is-invalid]="specialistForm.get('password')?.invalid && specialistForm.get('password')?.touched">
+              <div class="invalid-feedback" *ngIf="specialistForm.get('password')?.invalid && specialistForm.get('password')?.touched">
+                La contraseña debe tener al menos 6 caracteres
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="especialidad" class="form-label">Especialidad</label>
+              <select class="form-select" id="especialidad" formControlName="especialidad"
+                      [class.is-invalid]="specialistForm.get('especialidad')?.invalid && specialistForm.get('especialidad')?.touched">
+                <option value="">Seleccione una especialidad</option>
+                <option *ngFor="let specialty of specialties" [value]="specialty">{{specialty}}</option>
+              </select>
+              <div class="invalid-feedback" *ngIf="specialistForm.get('especialidad')?.invalid && specialistForm.get('especialidad')?.touched">
+                La especialidad es requerida
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="newSpecialty" class="form-label">Nueva Especialidad</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="newSpecialty" [(ngModel)]="newSpecialty" [ngModelOptions]="{standalone: true}">
+                <button class="btn btn-outline-secondary" type="button" (click)="addSpecialty()">Agregar</button>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="imagen" class="form-label">Imagen de Perfil</label>
+              <input type="file" class="form-control" id="imagen" (change)="onSpecialistFileSelected($event)" accept="image/*">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showSpecialistModal = false">Cerrar</button>
+          <button type="button" class="btn btn-primary" (click)="registerSpecialist()" [disabled]="specialistForm.invalid">Registrar</button>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -15,7 +15,7 @@
   outline: 0;
 }
 .custom-header {
-  background-color: #47077c; /* Cambia este valor por el color deseado */
+  background-color: #2b4ea0; /* Cambia este valor por el color deseado */
   width: 100%;
   position: fixed;
   top: 0;
@@ -24,5 +24,5 @@
 }
 
 .custom-header .container {
-  background-color: #47077c;
+  background-color: #2b4ea0;
 }
