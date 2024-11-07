@@ -1,0 +1,35 @@
+<div class="date-picker-container"  @fadeIn>
+  <h4>Seleccionar Fecha</h4>
+  <div class="picker-container">
+      <div class="dates-column">
+          <div class="available-dates">
+              <ng-container *ngFor="let day of displayDays; trackBy: trackByDate">
+                  <button
+                      class="day-button"
+                      [class.available]="day.isAvailable"
+                      [class.unavailable]="!day.isAvailable"
+                      [disabled]="!day.isAvailable"
+                      (click)="selectDate(day)"
+                      [class.selected]="selectedDay?.date === day.date" 
+                  >
+                      {{ formatDate(day.date) }}
+                  </button>
+              </ng-container>
+          </div>
+      </div>
+
+      <!-- Mostrar horarios disponibles si se seleccionó una fecha -->
+      <div *ngIf="selectedDay" class="times-column">
+          <h4>Horarios Disponibles</h4>
+          <ng-container *ngFor="let time of availableTimes">
+              <button
+                  class="btn btn-outline-primary time-button"
+                  (click)="selectTime(time)"
+                  [class.selected]="selectedTime === time" 
+              >
+                  {{ time }}:00 hs
+              </button>
+          </ng-container>
+      </div>
+  </div>
+</div>

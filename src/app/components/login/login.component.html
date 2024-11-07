@@ -4,47 +4,68 @@
       <h1 class="h3 mb-3 fw-normal">Inicio de sesión</h1>
 
       <div class="form-floating">
-        <input [(ngModel)]="correo" 
-               name="correo" 
-               type="email" 
-               class="form-control" 
-               id="floatingInput" 
-               placeholder="name@example.com">
-        <label for="floatingInput">Correo</label>
+        <input
+          type="email"
+          class="form-control"
+          [(ngModel)]="correo "
+          appAutoFocus
+          placeholder="Correo"
+          name="correo"
+        />
+        <label>Correo</label>
       </div>
 
       <div class="form-floating">
-        <input [(ngModel)]="clave" 
-               name="clave" 
-               type="password" 
-               class="form-control" 
-               id="floatingPassword" 
-               placeholder="Password">
-        <label for="floatingPassword">Contraseña</label>
+        <input
+          type="password"
+          class="form-control"
+          [(ngModel)]="clave"
+          appPasswordToggle
+          [appShakeOnError]="loginError"
+          placeholder="Contraseña"
+          name="contraseña"
+        />
+        <label>Contraseña ({{ clave | passwordStrength }})</label>
       </div>
 
       <button (click)="login()" class="btn btn-primary w-100 py-2">
         Iniciar sesión
       </button>
-
-      <div class="mt-3">
-        <h5>Acceso Rápido</h5>
-        <button (click)="autoFillAdmin()" 
-                type="button" 
-                class="btn btn-secondary w-100 py-2 mt-2">
-          Admin
-        </button>
-        <button (click)="autoFillEspecialista()" 
-                type="button" 
-                class="btn btn-secondary w-100 py-2 mt-2">
-          Especialista
-        </button>
-        <button (click)="autoFillPaciente()" 
-                type="button" 
-                class="btn btn-secondary w-100 py-2 mt-2">
-          Paciente
-        </button>
-      </div>
     </form>
   </div>
+
+  <!-- Quick Access Section -->
+  <div class="quick-access-section">
+    <div class="container">
+      <h5 class="text-center mb-4">Acceso Rápido</h5>
+
+      <!-- Loading Spinner -->
+      <div *ngIf="isLoading" class="text-center my-5">
+        <div
+          class="spinner-border text-primary"
+          role="status"
+          style="width: 3rem; height: 3rem"
+        >
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <div class="mt-2">Cargando usuarios...</div>
+      </div>
+
+      <!-- Quick Access Grid - Only shown when loading is complete -->
+      <div class="quick-access-grid" *ngIf="!isLoading">
+        <div
+          class="quick-access-item"
+          *ngFor="let user of quickAccessUsers"
+          (click)="autoFill(user.email, user.password)"
+        >
+          <div class="profile-image"><img [src]="user.imageUrl || 'assets/profiles/default.jpg'" 
+            [alt]="user.type"></div>
+          <span class="badge {{ user.type | userTypeBadge }}">
+            {{ user.email | emailMask }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
 </main>
+

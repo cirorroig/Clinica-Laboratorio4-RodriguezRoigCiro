@@ -1,0 +1,71 @@
+<div class="container contenedor">
+    <h2>Solicitar Turno</h2>
+
+    <!-- Specialty Selection -->
+    <div class="mb-4">
+        <div *ngIf="isAdmin" @fadeSlide class="mb-4">
+            <h4>Seleccionar Paciente</h4>
+            <select class="form-select" (change)="onPatientSeleccion($event)">
+                <option *ngFor="let patient of patients" [value]="patient.uid">
+                    {{ patient.nombre }} {{ patient.apellido }}
+                </option>
+            </select>
+            
+            <p *ngIf="patients.length === 0">No hay pacientes disponibles.</p> <!-- Message when no patients are found -->
+        </div>
+        <h4>Seleccionar Especialidad</h4>
+        <div class="btn-group">
+            <button
+                *ngFor="let specialty of specialties"
+                class="btn btn-outline-primary"
+                [class.active]="selectedSpecialty === specialty"
+                (click)="onSpecialtySelect(specialty)"
+            >
+                {{ specialty }}
+            </button>
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-3" @fadeSlide *ngIf="specialists.length === 0 ">
+        No hay especialistas disponibles para esta especialidad
+    </div>
+    <!-- Specialist Selection -->
+    <div *ngIf="selectedSpecialty && specialists.length > 0" @fadeSlide class="mb-4">
+        <h4>Seleccionar Especialista</h4>
+        <div class="btn-group">
+            <button
+                *ngFor="let specialist of specialists"
+                class="btn btn-outline-primary"
+                [class.active]="selectedSpecialist?.uid === specialist.uid"
+                (click)="onSpecialistSelect(specialist)"
+            >
+                {{ specialist.nombre }} {{ specialist.apellido }}
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Patient Selection for Admin -->
+
+    <!-- Date Picker -->
+    <div *ngIf="selectedSpecialist && specialists.length > 0 " @fadeSlide class="componente">
+        <div>
+            <h4>Seleccionar Fecha y Hora</h4>
+            <app-date-picker-simulado
+                [specialistUid]="selectedSpecialist.uid"
+                [loggedInUserUid]="loggedInUserUid"
+                (appointmentSelected)="onAppointmentSelected($event)"
+            >
+            </app-date-picker-simulado>
+        </div>
+    </div>
+
+    <!-- Submit Button -->
+    <button
+        *ngIf="selectedDate && selectedTime"
+        class="btn btn-success mt-3 mb-5"
+        (click)="submitAppointment()"
+    >
+        Confirmar Turno
+    </button>
+</div>

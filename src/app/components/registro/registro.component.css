@@ -4,6 +4,43 @@ body {
   background-color: #f5f5f5;
 }
 
+.selection-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-top: 2rem;
+}
+
+.user-type-selection {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.user-type-btn {
+  background: white;
+  border: none;
+  border-radius: 1rem;
+  padding: 2rem;
+  width: 300px;
+  height: 300px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.user-type-btn:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.15);
+}
+
+.user-type-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .form-signin {
   max-width: 800px;
   padding: 2rem;
@@ -32,16 +69,27 @@ body {
   color: #6c757d;
 }
 
-.btn-group {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+.form-group {
+  margin-bottom: 1rem; /* Ajustar el margen entre los grupos de formulario */
 }
 
-.btn-group .btn {
-  transition: all 0.2s;
+.form-group label {
+  font-weight: bold; /* Hacer etiquetas más prominentes */
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .user-type-selection {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .user-type-btn {
+    width: 250px;
+    height: 250px;
+  }
+
   .form-signin {
     max-width: 100%;
     margin: 1rem;

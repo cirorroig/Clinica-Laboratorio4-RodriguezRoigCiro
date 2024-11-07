@@ -1,0 +1,36 @@
+/* Add some spacing and rounded borders to match the button requirements */
+.btn-group {
+    margin: 0.5em 0.25em;
+}
+
+.rounded-pill {
+    border-radius: 50px;
+}
+
+.date-picker-container {
+    margin-bottom: 1em; /* Espaciado adicional para el contenedor del date picker */
+}
+
+.days-grid {
+    display: grid; /* Usar grid para organizar los días */
+    grid-template-columns: repeat(7, 1fr); /* Ajustar la cantidad de columnas (7 para una semana) */
+    gap: 0.5em; /* Espacio entre los botones */
+}
+
+.day-button {
+    width: 100%; /* Hacer que los botones ocupen el 100% del contenedor */
+}
+.componente{
+    width: 100% ;
+}
+.alert {
+    padding: 1rem;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+  }
+  
+  .alert-info {
+    background-color: #cff4fc;
+    border: 1px solid #b6effb;
+    color: #055160;
+  }

@@ -1,0 +1,481 @@
+<div class="container contenedor">
+  <h2 class="mb-4">Mis Turnos</h2>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <h5>Especialidad</h5>
+          <div class="btn-group d-flex flex-wrap gap-2">
+            <button
+              *ngFor="let specialty of specialties"
+              class="btn"
+              [class.btn-primary]="selectedSpecialty === specialty"
+              [class.btn-outline-primary]="selectedSpecialty !== specialty"
+              (click)="filterBySpecialty(specialty)"
+            >
+              {{ specialty }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Mostrar la selección de especialista solo si el usuario NO es especialista -->
+        <div class="col-md-6 mb-3" *ngIf="!isSpecialist">
+          <h5>Especialista</h5>
+          <div class="d-flex flex-wrap gap-2">
+            <button
+              *ngFor="let specialist of specialists"
+              class="btn"
+              [class.btn-primary]="selectedSpecialist === specialist.uid"
+              [class.btn-outline-primary]="
+                selectedSpecialist !== specialist.uid
+              "
+              (click)="
+                filterBySpecialist(
+                  specialist.uid === selectedSpecialist ? '' : specialist.uid
+                )
+              "
+            >
+              {{ specialist.nombre }} {{ specialist.apellido }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Mostrar la selección de paciente solo si el usuario es especialista -->
+        <div class="col-md-6 mb-3" *ngIf="isSpecialist">
+          <h5>Paciente</h5>
+          <div class="btn-group d-flex flex-wrap gap-2">
+            <button
+              *ngFor="let patient of patients"
+              class="btn"
+              [class.btn-primary]="selectedPatient === patient.uid"
+              [class.btn-outline-primary]="selectedPatient !== patient.uid"
+              (click)="filterByPatient(patient.uid)"
+            >
+              {{ patient.nombre }} {{ patient.apellido }}
+            </button>
+          </div>
+        </div>
+        <div class="col-md-12 mb-3">
+          <h5>Búsqueda por datos específicos</h5>
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Ingrese un valor de altura, peso, presión o temperatura"
+              [(ngModel)]="specificDataFilter"
+              (ngModelChange)="filterBySpecificData($event)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="alert alert-info mt-3" *ngIf="appointments.length === 0">
+    No tienes turnos registrados.
+  </div>
+
+  <div
+    class="alert alert-info mt-3"
+    *ngIf="
+      appointments.length > 0 &&
+      filteredAppointments.length === 0 &&
+      selectedSpecialty
+    "
+  >
+    No hay turnos disponibles para la especialidad seleccionada.
+  </div>
+
+  <div
+    class="alert alert-info mt-3"
+    *ngIf="
+      appointments.length > 0 &&
+      filteredAppointments.length === 0 &&
+      selectedSpecialist
+    "
+  >
+    No hay turnos disponibles con el especialista seleccionado.
+  </div>
+
+  <div class="appointments-list">
+    <div class="card mb-3" *ngFor="let appointment of filteredAppointments">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-8">
+            <h5 class="card-title">
+              Turno:
+              {{
+                convertTimestampToDate(appointment.fecha) | date : "dd/MM/yyyy"
+              }}
+              {{ appointment.hora }}:00
+            </h5>
+
+            <div *ngIf="!isSpecialist">
+              <p>
+                <strong>Especialista:</strong>
+                {{ getSpecialistName(appointment.uidEspecialista) }}
+              </p>
+            </div>
+            <div *ngIf="isSpecialist">
+              <p><strong>Paciente:</strong> {{ appointment.nombrePaciente }}</p>
+            </div>
+            <p><strong>Especialidad:</strong> {{ appointment.especialidad }}</p>
+
+            <span
+              class="badge"
+              [class.badge-primary]="appointment.status === 'PENDIENTE'"
+              [class.badge-success]="appointment.status === 'COMPLETADO'"
+              [class.badge-danger]="
+                appointment.status === 'CANCELADO' ||
+                appointment.status === 'RECHAZADO'
+              "
+              [class.badge-warning]="appointment.status === 'ACEPTADO'"
+            >
+              {{ appointment.status }}
+            </span>
+          </div>
+
+          <div class="col-md-4">
+            <div class="btn-group-vertical w-100">
+              <!-- Specialist Actions -->
+              <ng-container *ngIf="isSpecialist">
+                <button
+                  *ngIf="canAcceptAppointment(appointment)"
+                  class="btn btn-success mb-2"
+                  (click)="acceptAppointment(appointment)"
+                >
+                  Aceptar Turno
+                </button>
+
+                <button
+                  *ngIf="canRejectAppointment(appointment)"
+                  class="btn btn-danger mb-2"
+                  (click)="openRejectModal(appointment)"
+                >
+                  Rechazar Turno
+                </button>
+
+                <button
+                  *ngIf="canCancelAppointment(appointment)"
+                  class="btn btn-warning mb-2"
+                  (click)="openCancelModal(appointment)"
+                >
+                  Cancelar Turno
+                </button>
+
+                <button
+                  *ngIf="canFinishAppointment(appointment)"
+                  class="btn btn-primary mb-2"
+                  (click)="openFinishModal(appointment)"
+                >
+                  Finalizar Turno
+                </button>
+              </ng-container>
+
+              <!-- Patient Actions -->
+              <ng-container *ngIf="!isSpecialist">
+                <button
+                  *ngIf="canCancelAppointment(appointment)"
+                  class="btn btn-warning mb-2"
+                  (click)="openCancelModal(appointment)"
+                >
+                  Cancelar Turno
+                </button>
+                <button
+                  *ngIf="canReviewAppointment(appointment)"
+                  class="btn btn-warning mb-2"
+                  (click)="openRateModal(appointment)"
+                >
+                  Calificar atención
+                </button>
+              </ng-container>
+
+              <!-- Common Actions -->
+              <button
+                *ngIf="hasReview(appointment)"
+                class="btn btn-info"
+                (click)="openReviewModal(appointment)"
+              >
+                Ver Reseña
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" [class.show]="showModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ modalTitle }}</h5>
+        <button type="button" class="btn-close" (click)="closeModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Cancel/Reject Form -->
+        <form
+          [formGroup]="commentForm"
+          *ngIf="modalAction === 'cancel' || modalAction === 'reject'"
+        >
+          <div class="form-group mb-3">
+            <label for="comment">{{
+              modalAction === "cancel"
+                ? "Motivo de cancelación"
+                : "Motivo de rechazo"
+            }}</label>
+            <textarea
+              id="comment"
+              class="form-control"
+              formControlName="comment"
+              rows="3"
+              required
+            ></textarea>
+          </div>
+        </form>
+
+        <!-- Finish Appointment Form -->
+        <form [formGroup]="diagnosisForm" *ngIf="modalAction === 'finish'">
+          <!-- Datos Fijos -->
+          <div class="form-group mb-3">
+            <label for="diagnosis">Diagnóstico</label>
+            <textarea
+              id="diagnosis"
+              class="form-control"
+              formControlName="diagnosis"
+              rows="3"
+              required
+            ></textarea>
+          </div>
+          <div class="form-group mb-3">
+            <label for="review">Reseña de la consulta</label>
+            <textarea
+              id="review"
+              class="form-control"
+              formControlName="review"
+              rows="3"
+              required
+            ></textarea>
+          </div>
+          <div class="form-group mb-3">
+            <label>Altura</label>
+            <input
+              type="number"
+              class="form-control"
+              formControlName="altura"
+            />
+          </div>
+          <div class="form-group mb-3">
+            <label>Peso</label>
+            <input type="number" class="form-control" formControlName="peso" />
+          </div>
+          <div class="form-group mb-3">
+            <label>Temperatura</label>
+            <input
+              type="number"
+              class="form-control"
+              formControlName="temperatura"
+            />
+          </div>
+          <div class="form-group mb-3">
+            <label>Presión</label>
+            <input
+              type="number"
+              class="form-control"
+              formControlName="presion"
+            />
+          </div>
+
+          <!-- Datos Dinámicos -->
+          <div class="form-group mb-3">
+            <label>Dato Dinámico 1</label>
+            <div class="row">
+              <div class="col-6">
+                <input
+                  type="text"
+                  formControlName="clave0"
+                  class="form-control"
+                  placeholder="Clave"
+                />
+              </div>
+              <div class="col-6">
+                <input
+                  type="text"
+                  formControlName="valor0"
+                  class="form-control"
+                  placeholder="Valor"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="form-group mb-3">
+            <label>Dato Dinámico 2</label>
+            <div class="row">
+              <div class="col-6">
+                <input
+                  type="text"
+                  formControlName="clave1"
+                  class="form-control"
+                  placeholder="Clave"
+                />
+              </div>
+              <div class="col-6">
+                <input
+                  type="text"
+                  formControlName="valor1"
+                  class="form-control"
+                  placeholder="Valor"
+                />
+              </div>
+            </div>
+          </div>
+          <div class="form-group mb-3">
+            <label>Dato Dinámico 3</label>
+            <div class="row">
+              <div class="col-6">
+                <input
+                  type="text"
+                  formControlName="clave2"
+                  class="form-control"
+                  placeholder="Clave"
+                />
+              </div>
+              <div class="col-6">
+                <input
+                  type="text"
+                  formControlName="valor2"
+                  class="form-control"
+                  placeholder="Valor"
+                />
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <!-- View Review -->
+        <div *ngIf="modalAction === 'view'">
+          <div
+            *ngIf="
+              selectedAppointment?.diagnostico || selectedAppointment?.resena
+            "
+          >
+            <h6>Diagnóstico</h6>
+            <p>{{ selectedAppointment?.diagnostico }}</p>
+            <h6>Reseña</h6>
+            <p>{{ selectedAppointment?.resena }}</p>
+            <h6>Altura</h6>
+            <p>{{ selectedAppointment?.altura }}</p>
+            <h6>Peso </h6>
+            <p>{{ selectedAppointment?.peso }}</p>
+            <h6>Temperatura</h6>
+            <p>{{ selectedAppointment?.temperatura }}</p>
+            <h6>Presión</h6>
+            <p>{{ selectedAppointment?.presion }}</p>
+          </div>
+          <div *ngIf="selectedAppointment?.comentarioCancelacion">
+            <h6>Razon de cancelación de turno</h6>
+            <p>{{ selectedAppointment?.comentarioCancelacion }}</p>
+          </div>
+          <div *ngIf="selectedAppointment?.comentarioRechazo">
+            <h6>Razon de rechazo de turno</h6>
+            <p>{{ selectedAppointment?.comentarioRechazo }}</p>
+          </div>
+          <div *ngIf="isSpecialist && selectedAppointment?.calificacion">
+            <h6>Calificación</h6>
+            <p>{{ selectedAppointment?.calificacion }}</p>
+            <h6>Comentarios sobre la atención</h6>
+            <p>{{ selectedAppointment?.comentarioAtencion }}</p>
+          </div>
+          @if (selectedAppointment?.datosDinamicos) {
+
+            @if (dinamicos[0].clave  != null) {
+  
+              <div >
+                <h6>{{dinamicos[0].clave}}</h6>
+                <p>{{ dinamicos[0].valor }}</p>
+              </div>
+            }
+            @if (dinamicos[1].clave  != null) {
+  
+              <div >
+                <h6>{{dinamicos[1].clave}}</h6>
+                <p>{{ dinamicos[1].valor }}</p>
+              </div>
+            }
+            @if (dinamicos[2].clave  != null) {
+  
+              <div >
+                <h6>{{dinamicos[2].clave}}</h6>
+                <p>{{ dinamicos[2].valor }}</p>
+              </div>
+            }
+          }
+        </div>
+      </div>
+      <div *ngIf="modalAction === 'rate'">
+        <form [formGroup]="ratingForm">
+          <div class="form-group mb-3 mx-2">
+            <label for="rating">Puntuación (1 a 5)</label>
+            <select
+              id="rating"
+              class="form-control"
+              formControlName="rating"
+              required
+            >
+              <option value="" disabled>Seleccione una puntuación</option>
+              <option *ngFor="let score of [1, 2, 3, 4, 5]" [value]="score">
+                {{ score }}
+              </option>
+            </select>
+            <div
+              *ngIf="
+                ratingForm.get('rating')?.invalid &&
+                ratingForm.get('rating')?.touched
+              "
+              class="text-danger"
+            >
+              La puntuación es obligatoria y debe estar entre 1 y 5.
+            </div>
+          </div>
+
+          <div class="form-group mb-3 mx-2">
+            <label for="comment">Comentario</label>
+            <textarea
+              id="comment"
+              class="form-control"
+              formControlName="comment"
+              rows="3"
+              required
+            ></textarea>
+            <div
+              *ngIf="
+                ratingForm.get('comment')?.invalid &&
+                ratingForm.get('comment')?.touched
+              "
+              class="text-danger"
+            >
+              El comentario es obligatorio.
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="submitModal()"
+          *ngIf="modalAction !== 'view'"
+        >
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

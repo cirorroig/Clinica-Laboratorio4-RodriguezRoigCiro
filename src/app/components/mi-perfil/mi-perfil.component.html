@@ -1,0 +1,227 @@
+<div class="container contenedor">
+    @if (loading) {
+      <div class="text-center">
+        <div class="spinner-border" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+      </div>
+    } @else if (userData) {
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-body text-center">
+              @for (imageUrl of userData.imageUrls; track imageUrl) {
+                <img [src]="imageUrl" class="profile-image mb-3" [alt]="'Foto de perfil ' + $index">
+              }
+              <h4 class="card-title">{{ userData.nombre }} {{ userData.apellido }}</h4>
+              <p class="text-muted">{{ userData.perfil | titlecase }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-8">
+          <div class="card">
+            <div class="card-body">
+              <h5 class="card-title">Información Personal</h5>
+              <div class="row mb-3">
+                <div class="col-sm-3">
+                  <h6 class="mb-0">Nombre Completo</h6>
+                </div>
+                <div class="col-sm-9 text-secondary">
+                  {{ userData.nombre }} {{ userData.apellido }}
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-3">
+                  <h6 class="mb-0">Email</h6>
+                </div>
+                <div class="col-sm-9 text-secondary">
+                  {{ userData.email }}
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-3">
+                  <h6 class="mb-0">DNI</h6>
+                </div>
+                <div class="col-sm-9 text-secondary">
+                  {{ userData.dni }}
+                </div>
+              </div>
+              <div class="row mb-3">
+                <div class="col-sm-3">
+                  <h6 class="mb-0">Edad</h6>
+                </div>
+                <div class="col-sm-9 text-secondary">
+                  {{ userData.edad }} años
+                </div>
+              </div>
+              @if (userData.obraSocial) {
+                <div class="row mb-3">
+                  <div class="col-sm-3">
+                    <h6 class="mb-0">Obra Social</h6>
+                  </div>
+                  <div class="col-sm-9 text-secondary">
+                    {{ userData.obraSocial }}
+                  </div>
+                </div>
+              }
+              @if (userData.especialidades) {
+                <div class="row mb-3">
+                  <div class="col-sm-3">
+                    <h6 class="mb-0">Especialidades</h6>
+                  </div>
+                  <div class="col-sm-9 text-secondary">
+                    {{ userData.especialidades.join(', ') }}
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+  
+          @if (isSpecialist) {
+            <div class="card mt-4">
+              <div class="card-body">
+                <h5 class="card-title">Mis Horarios</h5>
+                <form [formGroup]="availabilityForm" (ngSubmit)="updateAvailability()">
+                  <div class="mb-4">
+                    <label class="form-label">Días Disponibles</label>
+                    <div class="d-flex flex-wrap gap-3">
+                      @for (day of daysOfWeek; track day) {
+                        <div class="form-check">
+                          <input 
+                            type="checkbox" 
+                            class="form-check-input" 
+                            [id]="'day-' + day"
+                            [checked]="isDaySelected(day)"
+                            (change)="toggleDay(day)">
+                          <label class="form-check-label" [for]="'day-' + day">
+                            {{ day }}
+                          </label>
+                        </div>
+                      }
+                    </div>
+                  </div>
+  
+                  <div class="row mb-4">
+                    <div class="col-md-6">
+                      <label class="form-label">Horario de inicio</label>
+                      <select class="form-select" formControlName="horarioInicio">
+                        @for (hour of hoursRange; track hour) {
+                          <option [value]="hour">{{ hour }}:00</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Horario de fin</label>
+                      <select class="form-select" formControlName="horarioFin">
+                        @for (hour of hoursRange; track hour) {
+                          <option [value]="hour">{{ hour }}:00</option>
+                        }
+                      </select>
+                    </div>
+                  </div>
+  
+                  <button 
+                    type="submit" 
+                    class="btn btn-primary"
+                    [disabled]="availabilityForm.invalid || loading">
+                    @if (loading) {
+                      <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    }
+                    Actualizar Horarios
+                  </button>
+                </form>
+  
+                @if (errorMessage) {
+                  <div class="alert alert-danger mt-3">
+                    {{ errorMessage }}
+                  </div>
+                }
+                @if (successMessage) {
+                  <div class="alert alert-success mt-3">
+                    {{ successMessage }}
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <div class="card mt-4" *ngIf="userData?.perfil === 'patient'">
+          <div class="card-body">
+            <h5 class="card-title">Historial Clínico</h5>
+            
+            <div *ngIf="loadingHistorial" class="text-center">
+              <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando historial...</span>
+              </div>
+            </div>
+            <div *ngIf="!loadingHistorial && historialClinico.length === 0" class="alert alert-info">
+              No hay registros clínicos disponibles.
+            </div>
+            <div *ngIf="!loadingHistorial && historialClinico.length > 0" class="accordion" id="historiaClinicaAccordion">
+              <ng-container *ngFor="let turno of historialClinico; trackBy: trackByTurno; let i = index">
+                <div class="accordion-item">
+                  <h6 class="accordion-header">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" [attr.data-bs-target]="'#collapse' + i">
+                      {{ turno.fecha | date:'dd/MM/yyyy' }} {{ turno.hora }} - {{ turno.especialidad }}
+
+                    </button>
+                  </h6>
+                  <div class="accordion-collapse collapse" [id]="'collapse' + i">
+                    <div class="accordion-body">
+                      <h6>Datos Vitales</h6>
+                      <div class="row g-3">
+                        <div class="col-md-3">
+                          <strong>Altura:</strong> {{ turno.altura }} cm
+                        </div>
+                        <div class="col-md-3">
+                          <strong>Peso:</strong> {{ turno.peso }} kg
+                        </div>
+                        <div class="col-md-3">
+                          <strong>Temperatura:</strong> {{ turno.temperatura }}°C
+                        </div>
+                        <div class="col-md-3">
+                          <strong>Presión:</strong> {{ turno.presion }}
+                        </div>
+                      </div>
+        
+                      <div *ngIf="turno.datosDinamicos && hasDatosDinamicosValidos(turno.datosDinamicos)">
+                        <h6 class="mb-3 mt-5">Datos Adicionales</h6>
+                        <div class="row g-3">
+                          <ng-container *ngFor="let dato of turno.datosDinamicos; trackBy: trackByDato">
+                            <div *ngIf="dato.clave !== null && dato.valor !== null" class="col-md-4">
+                              <strong>{{ dato.clave }}:</strong> {{ dato.valor }}
+                            </div>
+                          </ng-container>
+                        </div>
+                      </div>
+        
+                      <div *ngIf="turno.diagnostico">
+                        <h6 class="mb-3 mt-3">Diagnóstico</h6>
+                        <div class="alert alert-info">
+                          {{ turno.diagnostico }}
+                        </div>
+                      </div>
+        
+                      <div *ngIf="turno.comentarioAtencion">
+                        <h6 class="mb-3">Comentarios de la Atención</h6>
+                        <div class="alert alert-secondary">
+                          {{ turno.comentarioAtencion }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+        
+        
+      </div>
+    } @else {
+      <div class="alert alert-danger" role="alert">
+        Error al cargar los datos del usuario
+      </div>
+    }
+  </div>

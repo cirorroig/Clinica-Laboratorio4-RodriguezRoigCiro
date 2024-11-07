@@ -1,44 +1,103 @@
 <header class="fixed-top custom-header">
   <div class="px-3 py-2 border-bottom">
     <div class="container">
-      <div
-        class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start"
-      >
+      <div class="d-flex flex-wrap align-items-center justify-content-between">
         <a
           (click)="navigateTo('/home')"
-          class="d-flex align-items-center my-2 my-lg-0 me-lg-auto text-white text-decoration-none"
+          class="d-flex align-items-center my-2 my-lg-0 text-white text-decoration-none"
         >
           <img src="logo.svg" alt="Logo" width="50" height="52" class="me-2" />
         </a>
 
-        <ul
-          class="nav col-12 col-lg-auto my-2 justify-content-center my-md-0 text-small"
-        >
-          <li>
+        <ul *ngIf="userName" class="nav my-2 justify-content-center my-md-0">
+          <li class="nav-item dropdown">
             <a
-              (click)="navigateTo('/home')"
-              class="nav-link text-white d-flex flex-column align-items-center"
+              class="nav-link dropdown-toggle text-white fs-5" 
+              href="#"
+              role="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
             >
-              <i class="bi bi-house-door" style="font-size: 24px"></i>
-              Inicio
+              {{ userName ? userName : 'Usuario' }}
             </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li>
+                <a
+                  (click)="navigateTo('/mi-perfil')"
+                  class="dropdown-item fs-5" 
+                >
+                  <i class="bi bi-person-circle"></i>
+                  Mi perfil
+                </a>
+              </li>
+              <li *ngIf="isLoggedIn && (userType === 'patient' || userType === 'admin')">
+                <a
+                  (click)="navigateTo('/solicitarTurno')"
+                  class="dropdown-item fs-5" 
+                >
+                  <i class="bi bi-calendar-plus"></i>
+                  Solicitar Turno
+                </a>
+              </li>
+              <li *ngIf="isLoggedIn && (userType === 'patient' || userType === 'specialist')">
+                <a
+                  (click)="navigateTo('/misTurnos')"
+                  class="dropdown-item fs-5" 
+                >
+                  <i class="bi bi-calendar-check"></i>
+                  Mis Turnos
+                </a>
+              </li>
+              <li *ngIf="isLoggedIn && userType === 'admin'">
+                <a
+                  (click)="navigateTo('/turnos')"
+                  class="dropdown-item fs-5" 
+                >
+                  <i class="bi bi-file-earmark-text"></i>
+                  Turnos
+                </a>
+              </li>
+              <li *ngIf="isLoggedIn && userType === 'specialist'">
+                <a
+                  (click)="navigateTo('/pacientes')"
+                  class="dropdown-item fs-5" 
+                >
+                <i class="bi bi-people"></i>
+                  Pacientes
+                </a>
+              </li>
+              <li *ngIf="isLoggedIn && userType === 'admin'">
+                <a
+                  (click)="navigateTo('/usuarios')"
+                  class="dropdown-item fs-5" 
+                >
+                  <i class="bi bi-person-lines-fill"></i>
+                  Usuarios
+                </a>
+              </li>
+              <li *ngIf="isLoggedIn && userType === 'admin'">
+                <a
+                  (click)="navigateTo('/estadisticas')"
+                  class="dropdown-item fs-5" 
+                >
+                  <i class="bi bi-clipboard-data"></i>
+                  Estadisticas
+                </a>
+              </li>
+              <li>
+                <hr class="dropdown-divider" />
+              </li>
+              <li>
+                <a
+                  (click)="cerrarSesion()"
+                  class="dropdown-item text-danger fs-5"
+                  >
+                  <i class="bi bi-box-arrow-right"></i>
+                  Cerrar Sesión
+                </a>
+              </li>
+            </ul>
           </li>
-          @if (isLoggedIn) {
-            <li  class="nav-item flex-column text-center">
-              <span class="nav-link text-white">Bienvenido</span>
-              <span class="nav-link text-white">{{ userName }}</span>
-            </li>
-            <li>
-              <a
-                (click)="cerrarSesion()"
-                class="nav-link text-white d-flex flex-column align-items-center"
-              >
-                <i class="bi bi-box-arrow-right" style="font-size: 24px"></i>
-                Cerrar Sesión
-              </a>
-            </li>
-
-          }
         </ul>
       </div>
     </div>

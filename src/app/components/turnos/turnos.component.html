@@ -1,0 +1,117 @@
+<div class="container contenedor">
+    <h2 class="mb-4">Turnos de la Clínica</h2>
+  
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <h5>Especialidad</h5>
+            <div class="d-flex flex-wrap gap-2">
+              <button *ngFor="let specialty of specialties"
+                      class="btn"
+                      [class.btn-primary]="selectedSpecialty === specialty"
+                      [class.btn-outline-primary]="selectedSpecialty !== specialty"
+                      (click)="filterBySpecialty(specialty)">
+                {{ specialty }}
+              </button>
+            </div>
+          </div>
+  
+          <div class="col-md-6 mb-3">
+            <h5>Especialista</h5>
+            <div class="d-flex flex-wrap gap-2">
+              <button *ngFor="let specialist of specialists"
+                      class="btn"
+                      [class.btn-primary]="selectedSpecialist === specialist.uid"
+                      [class.btn-outline-primary]="selectedSpecialist !== specialist.uid"
+                      (click)="filterBySpecialist(specialist.uid)">
+                {{ specialist.nombre }} {{ specialist.apellido }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <div class="alert alert-info mt-3" *ngIf="appointments.length === 0">
+      No hay turnos registrados.
+    </div>
+  
+    <div class="alert alert-info mt-3" 
+         *ngIf="appointments.length > 0 && filteredAppointments.length === 0">
+      No hay turnos que coincidan con los filtros seleccionados.
+    </div>
+  
+    <div class="appointments-list">
+      <div class="card mb-3" *ngFor="let appointment of filteredAppointments">
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8">
+              <h5 class="card-title">
+                Turno: {{ convertTimestampToDate(appointment.fecha) | date:'dd/MM/yyyy' }} 
+                {{ appointment.hora }}:00
+              </h5>
+              <p class="mb-1">
+                <strong>Paciente:</strong> {{ appointment.nombrePaciente }}
+              </p>
+              <p class="mb-1">
+                <strong>Especialista:</strong> {{ getSpecialistName(appointment.uidEspecialista) }}
+              </p>
+              <p class="mb-1">
+                <strong>Especialidad:</strong> {{ appointment.especialidad }}
+              </p>
+              <span class="badge"
+                    [class.bg-primary]="appointment.status === 'PENDIENTE'"
+                    [class.bg-success]="appointment.status === 'COMPLETADO'"
+                    [class.bg-danger]="appointment.status === 'CANCELADO' || appointment.status === 'RECHAZADO'"
+                    [class.bg-warning]="appointment.status === 'ACEPTADO'">
+                {{ appointment.status }}
+              </span>
+            </div>
+            <div class="col-md-4">
+              <div class="d-grid gap-2">
+                <button class="btn btn-danger"
+                        *ngIf="canCancelAppointment(appointment)"
+                        (click)="openCancelModal(appointment)">
+                  Cancelar Turno
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal de Cancelación -->
+  <div class="modal" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cancelar Turno</h5>
+          <button type="button" class="btn-close" (click)="closeModal()"></button>
+        </div>
+        <form [formGroup]="cancelForm" (ngSubmit)="submitCancelForm()">
+          <div class="modal-body">
+            <div class="form-group mb-3">
+              <label for="comment">Motivo de cancelación</label>
+              <textarea id="comment"
+                        class="form-control"
+                        formControlName="comment"
+                        rows="3"
+                        [class.is-invalid]="cancelForm.get('comment')?.invalid && cancelForm.get('comment')?.touched"
+                        required></textarea>
+              <div class="invalid-feedback" *ngIf="cancelForm.get('comment')?.invalid && cancelForm.get('comment')?.touched">
+                El motivo de cancelación es obligatorio
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()">Cerrar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="!cancelForm.valid">Confirmar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="showModal"></div>

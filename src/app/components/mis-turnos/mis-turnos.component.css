@@ -1,0 +1,66 @@
+/* my-appointments.component.css */
+.appointments-list {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.btn-group {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.btn-group .btn {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.modal {
+  display: none;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal.show {
+  display: block;
+}
+
+.badge {
+  padding: 0.5em 1em;
+  font-size: 0.875em;
+}
+
+.badge-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.badge-success {
+  background-color: #28a745;
+  color: white;
+}
+
+.badge-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.badge-warning {
+  background-color: #ffc107;
+  color: black;
+}
+
+.badge-info {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.alert-info {
+  background-color: #cff4fc;
+  border: 1px solid #b6effb;
+  color: #055160;
+}

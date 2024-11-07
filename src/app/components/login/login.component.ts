@@ -1,16 +1,29 @@
-import { Component, inject, OnDestroy } from '@angular/core';
-import { Auth, signInWithEmailAndPassword, signOut } from '@angular/fire/auth';
+import { Component, inject, OnInit } from '@angular/core';
+import { Auth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from '@angular/fire/auth';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Firestore, collection, addDoc, getDocs, query, where } from '@angular/fire/firestore';
+import { Firestore, addDoc, collection, getDocs, query, where } from '@angular/fire/firestore';
 import { ToastrService } from 'ngx-toastr';
 import { CommonModule } from '@angular/common';
-
+import { EmailMaskPipe } from '../../pipes/email-mask.pipe';
+import { PasswordStrengthPipe } from '../../pipes/password-strength.pipe';
+import { UserTypeBadgePipe } from '../../pipes/user-type-badge.pipe';
+import { AutoFocusDirective } from '../../directives/auto-focus.directive';
+import { PasswordToggleDirective } from '../../directives/password-toggle.directive';
+import { ShakeOnErrorDirective } from '../../directives/shake-on-error.directive';
 interface Usuario {
   email: string;
   perfil: 'admin' | 'specialist' | 'patient';
   emailVerificado: boolean;
   habilitado: boolean;
+  imageUrls: string[];
+}
+
+interface QuickAccessUser {
+  email: string;
+  password: string;
+  type: string;
+  imageUrl: string | null;
 }
 
 @Component({
@@ -18,23 +31,68 @@ interface Usuario {
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule
+    FormsModule,
+    PasswordStrengthPipe,
+    UserTypeBadgePipe,
+    EmailMaskPipe,
+    PasswordToggleDirective,
+    AutoFocusDirective,
+    ShakeOnErrorDirective
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
-export class LoginComponent  {
+export class LoginComponent implements OnInit {
   correo = '';
   clave = '';
+  isLoading = true;
+  loginError = false;
+
+  quickAccessUsers: QuickAccessUser[] = [
+    { email: 'maria@yopmail.com', password: 'pac123', type: 'Paciente 1', imageUrl: null },
+    { email: 'carlitos@yopmail.com', password: 'pac123', type: 'Paciente 2', imageUrl: null },
+    { email: 'willy@yopmail.com', password: 'pac123', type: 'Paciente 3', imageUrl: null },
+    { email: 'rickyricon@yopmail.com', password: '123456', type: 'Especialista 1', imageUrl: null },
+    { email: 'wil212233y@yopmail.com', password: '123456', type: 'Especialista 2', imageUrl: null },
+    { email: 'admin@clinica.com', password: '111111', type: 'Admin', imageUrl: null },
+  ];
 
   private auth = inject(Auth);
   private router = inject(Router);
   private firestore = inject(Firestore);
   private toastr = inject(ToastrService);
+  
+  async ngOnInit() {
+    await this.loadUserImages();
+  }
+
+  private async loadUserImages() {
+    try {
+      const userRef = collection(this.firestore, 'usuarios');
+      
+      for (const user of this.quickAccessUsers) {
+        const q = query(userRef, where('email', '==', user.email));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const userData = querySnapshot.docs[0].data() as Usuario;
+          
+          if (userData.imageUrls && userData.imageUrls.length > 0) {
+            user.imageUrl = userData.imageUrls[0];
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar las imágenes:', error);
+      this.toastr.error('Error al cargar las imágenes de perfil');
+    } finally {
+      this.isLoading = false;
+    }
+  }
 
   async login() {
     try {
-      // Primero, verifica si el usuario existe en Firestore
+      this.loginError = false;
       const userRef = collection(this.firestore, 'usuarios');
       const q = query(userRef, where('email', '==', this.correo));
       const querySnapshot = await getDocs(q);
@@ -45,36 +103,23 @@ export class LoginComponent  {
       }
   
       const userData = querySnapshot.docs[0].data() as Usuario;
-  
-      // Verifica los permisos antes de iniciar sesión
+      
+      // Guardamos los datos del usuario primero
+      localStorage.setItem('userProfile', JSON.stringify(userData));
+      
+      await this.logLogin(userData);
+
+
       if (userData.perfil === 'admin') {
-        // Los admins pueden iniciar sesión sin restricciones
-        const userCredential = await signInWithEmailAndPassword(this.auth, this.correo, this.clave);
-        this.router.navigate(['/home']);
+        await this.handleAdminLogin(userData);
       } else {
-        // Para especialistas y pacientes, primero intenta iniciar sesión
-        const userCredential = await signInWithEmailAndPassword(this.auth, this.correo, this.clave);
-        const user = userCredential.user;
-  
-        // Ahora verifica el estado de verificación del email
-        if (!user.emailVerified) {
-          await signOut(this.auth); // Cerrar sesión si no está verificado
-          this.toastr.error('Por favor, verifica tu email antes de iniciar sesión');
-          return;
-        }
-  
-        // Verifica habilitación para especialistas
-        if (userData.perfil === 'specialist' && !userData.habilitado) {
-          await signOut(this.auth); // Cerrar sesión si no está habilitado
-          this.toastr.error('Tu cuenta está pendiente de aprobación por un administrador');
-          return;
-        }
-  
-        // Si todos los cheques pasan, continua a la siguiente página
-        this.router.navigate(['/home']);
+        await this.handleUserLogin(userData);
       }
     } catch (error: any) {
+      this.loginError = true;
+
       console.error('Error al iniciar sesión:', error);
+
       let mensaje = 'Error al iniciar sesión';
   
       if (error.code === 'auth/user-not-found') {
@@ -90,22 +135,69 @@ export class LoginComponent  {
       this.toastr.error(mensaje);
     }
   }
-  
 
-
-  // Botones de acceso rápido
-  autoFillAdmin() {
-    this.correo = 'admin@clinica.com';
-    this.clave = '111111';
+  private async handleAdminLogin(userData: Usuario) {
+    const userCredential = await signInWithEmailAndPassword(this.auth, this.correo, this.clave);
+    await this.waitForAuthState();
+    this.router.navigate(['/home']);
   }
 
-  autoFillEspecialista() {
-    this.correo = 'especialista@guerrillamail.com';
-    this.clave = 'esp123';
+  private async handleUserLogin(userData: Usuario) {
+    const userCredential = await signInWithEmailAndPassword(this.auth, this.correo, this.clave);
+    const user = userCredential.user;
+
+    if (!user.emailVerified) {
+      await signOut(this.auth);
+      this.toastr.error('Por favor, verifica tu email antes de iniciar sesión');
+      return;
+    }
+
+    if (userData.perfil === 'specialist' && !userData.habilitado) {
+      await signOut(this.auth);
+      this.toastr.error('Tu cuenta está pendiente de aprobación por un administrador');
+      return;
+    }
+
+    await this.waitForAuthState();
+    this.router.navigate(['/home']);
   }
 
-  autoFillPaciente() {
-    this.correo = 'paciente@guerrillamail.com';
-    this.clave = 'pac123';
+  private waitForAuthState(): Promise<void> {
+    return new Promise((resolve) => {
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      const checkAuth = setInterval(() => {
+        attempts++;
+        const user = this.auth.currentUser;
+        
+        if (user || attempts >= maxAttempts) {
+          clearInterval(checkAuth);
+          if (user) {
+            // Forzar una pequeña espera adicional para asegurar que todo esté sincronizado
+            setTimeout(() => {
+              resolve();
+            }, 500);
+          } else {
+            resolve();
+          }
+        }
+      }, 100);
+    });
+  }
+  private async logLogin(userData: Usuario) {
+    try {
+      const logRef = collection(this.firestore, 'logs');
+      await addDoc(logRef, {
+        usuario: userData,
+        fecha: new Date(),
+      });
+    } catch (error) {
+      console.error('Error al guardar el log de acceso:', error);
+    }
+  }
+  autoFill(email: string, password: string) {
+    this.correo = email;
+    this.clave = password;
   }
 }

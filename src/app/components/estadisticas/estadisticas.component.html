@@ -1,0 +1,121 @@
+<div class="container mt-4">
+    <h2>Estadísticas del Sistema</h2>
+    
+    <!-- Gráficos -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Turnos por Especialidad</h5>
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Turnos por Día</h5>
+            <canvas id="lineChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selector de Especialista -->
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <div class="form-group">
+          <label for="especialista">Seleccionar Especialista:</label>
+          <select 
+            class="form-control" 
+            id="especialista" 
+            [(ngModel)]="selectedSpecialistId"
+            (change)="updateSpecialistCharts()">
+            <option value="">Seleccione un especialista</option>
+            <option *ngFor="let esp of especialistas" [value]="esp.uid">
+              {{esp.nombre}} {{esp.apellido}}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráficos de Especialista -->
+    <div class="row mt-4" *ngIf="selectedSpecialistId">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Turnos Pendientes para los proximos 15 dias</h5>
+            <canvas id="pendingChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Turnos Completados de los ultimos 15 dias</h5>
+            <canvas id="completedChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botones de Exportación -->
+    <div class="row mt-4">
+      <div class="col">
+        <button class="btn btn-primary me-2" (click)="exportToExcel()">
+          Exportar a Excel
+        </button>
+        <button class="btn btn-secondary me-2" (click)="exportToPDF()">
+          Exportar a PDF
+        </button>
+        <button class="btn btn-info" (click)="toggleLogs()">
+          {{showLogs ? 'Ocultar' : 'Mostrar'}} Logs
+          <button (click)="exportLogsToPDF()" *ngIf="showLogs" class="btn btn-primary">
+            Exportar Logs a PDF
+          </button>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabla de Logs -->
+    <div class="row mt-4" *ngIf="showLogs">
+      <div class="col">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">Logs del Sistema</h5>
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                    <th>Perfil</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let log of logs">
+                    <td>{{log.fecha.toDate() | date:'short'}}</td>
+                    <td>{{log.usuario.nombre}} {{log.usuario.apellido}}</td>
+                    @if(log.usuario.perfil == "admin"){
+
+                        <td>Administrador</td>
+                    }
+                    @else if (log.usuario.perfil == "specialist") {
+                        <td>Especialista</td>
+                    }
+                    @else{
+                        <td>Paciente</td>
+                    }
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+`

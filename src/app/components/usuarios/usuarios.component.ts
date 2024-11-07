@@ -9,14 +9,20 @@ import {
   updateDoc, 
   deleteDoc, 
   addDoc,
-  Firestore 
+  Firestore, 
+  query,
+  where,
+  Timestamp
 } from '@angular/fire/firestore';
 import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
 import { Auth, createUserWithEmailAndPassword, sendEmailVerification } from '@angular/fire/auth';
 import { FirebaseApp, initializeApp } from '@angular/fire/app';
 import { getAuth } from 'firebase/auth';
+import Swal from 'sweetalert2';
+import * as XLSX from 'xlsx';
 
 interface User {
+  uid:string
   id?: string;
   nombre: string;
   apellido: string;
@@ -47,6 +53,30 @@ interface SpecialistFormControls extends BaseFormControls {
   especialidad: FormControl<string | null>;
 }
 
+interface DatoDinamico {
+  clave: string;
+  valor: string | number;
+}
+
+interface Turno {
+  id: string;
+  uidPaciente: string;
+  uidEspecialista: string;
+  fecha: Date;
+  hora: string;
+  status: string;
+  especialidad: string;
+  altura: number | null;
+  peso: number | null;
+  temperatura: number | null;
+  presion: string | null;
+  datosDinamicos: DatoDinamico[];
+  diagnostico: string;
+  comentarioAtencion: string;
+}
+
+
+
 @Component({
   selector: 'app-usuarios',
   standalone: true,
@@ -55,6 +85,7 @@ interface SpecialistFormControls extends BaseFormControls {
   styleUrls: ['./usuarios.component.css']
 })
 export class UsuariosComponent implements OnInit {
+  
   users: User[] = [];
   showAdminModal = false;
   showPatientModal = false;
@@ -70,6 +101,12 @@ export class UsuariosComponent implements OnInit {
   errorMessage: string = '';
   successMessage: string = '';
   isLoading = false;
+
+  showHistorialModal = false;
+  selectedUserHistorial: Turno[] = [];
+  loadingHistorial = false;
+  selectedUserName = '';
+
   private secondaryApp: FirebaseApp;
   private secondaryAuth: Auth;
 
@@ -100,14 +137,40 @@ export class UsuariosComponent implements OnInit {
   ngOnInit() {
     this.loadUsers();
   }
-
+  downloadUsersExcel() {
+    // Preparar los datos para el Excel
+    const excelData = this.users.map(user => ({
+      Nombre: user.nombre,
+      Apellido: user.apellido,
+      Edad: user.edad,
+      DNI: user.dni,
+      Email: user.email,
+      Perfil: user.perfil,
+      Estado: user.perfil === 'specialist' ? (user.habilitado ? 'Habilitado' : 'Deshabilitado') : 'N/A',
+      Especialidad: user.perfil === 'admin' 
+        ? 'Administrador' 
+        : user.perfil === 'specialist' 
+          ? 'Especialista' 
+          : 'Paciente',
+      'Obra Social': user.obraSocial || 'N/A'
+    }));
+    
+  
+    // Crear el libro de trabajo
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Usuarios');
+  
+    // Generar el archivo
+    XLSX.writeFile(workbook, 'usuarios_clinica.xlsx');
+  }
   createBaseForm(): FormGroup<BaseFormControls> {
     return this.fb.group<BaseFormControls>({
       nombre: this.fb.control('', [Validators.required, Validators.minLength(2)]),
       apellido: this.fb.control('', [Validators.required, Validators.minLength(2)]),
       edad: this.fb.control('', [Validators.required, Validators.min(1), Validators.max(120)]),
       dni: this.fb.control('', [Validators.required, Validators.pattern('^[0-9]{8}$')]),
-      email: this.fb.control('', [Validators.required, Validators.email]),
+      email: this.fb.control('', [Validators.required, Validators.pattern("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")]),
       password: this.fb.control('', [Validators.required, Validators.minLength(6)])
     });
   }
@@ -134,43 +197,133 @@ export class UsuariosComponent implements OnInit {
       ...doc.data() as User
     }));
   }
+  async verHistorial(user: User) {
+    console.log("hola");
+    
+    this.loadingHistorial = true;
+    this.showHistorialModal = true;
+    this.selectedUserName = `${user.nombre} ${user.apellido}`;
+    this.selectedUserHistorial = [];
 
+    try {
+      const turnosRef = collection(this.firestore, 'turnos');
+      const q = query(
+        turnosRef,
+        where('uidPaciente', '==', user.uid),
+        where('status', '==', 'COMPLETADO'),
+        where('altura', '!=', null)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      this.selectedUserHistorial = querySnapshot.docs
+        .map((doc) => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            fecha: data['fecha'] instanceof Timestamp 
+              ? data['fecha'].toDate() 
+              : new Date(data['fecha']),
+          } as Turno;
+        })
+        .sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+    } catch (error) {
+      console.error('Error al cargar el historial clínico:', error);
+      await Swal.fire({
+        title: 'Error',
+        text: 'No se pudo cargar el historial clínico',
+        icon: 'error'
+      });
+    } finally {
+      this.loadingHistorial = false;
+    }
+  }
+
+  hasDatosDinamicosValidos(datosDinamicos: DatoDinamico[]): boolean {
+    if (!datosDinamicos) return false;
+    return datosDinamicos.some(
+      (dato) => dato.clave !== null && dato.valor !== null
+    );
+  }
+
+  closeHistorialModal() {
+    this.showHistorialModal = false;
+    this.selectedUserHistorial = [];
+    this.selectedUserName = '';
+  }
   async toggleUserStatus(user: User) {
     if (user.id) {
-      const userRef = doc(this.firestore, 'usuarios', user.id);
-      await updateDoc(userRef, {
-        habilitado: !user.habilitado
+      const result = await Swal.fire({
+        title: `¿${user.habilitado ? 'Deshabilitar' : 'Habilitar'} usuario?`,
+        text: `¿Está seguro que desea ${user.habilitado ? 'deshabilitar' : 'habilitar'} a ${user.nombre} ${user.apellido}?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: user.habilitado ? 'Deshabilitar' : 'Habilitar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: user.habilitado ? '#d33' : '#3085d6',
       });
-      await this.loadUsers();
+
+      if (result.isConfirmed) {
+        try {
+          const userRef = doc(this.firestore, 'usuarios', user.id);
+          await updateDoc(userRef, {
+            habilitado: !user.habilitado
+          });
+          await this.loadUsers();
+          
+          await Swal.fire({
+            title: '¡Actualizado!',
+            text: `El usuario ha sido ${user.habilitado ? 'deshabilitado' : 'habilitado'} correctamente`,
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } catch (error) {
+          await Swal.fire({
+            title: 'Error',
+            text: 'No se pudo actualizar el estado del usuario',
+            icon: 'error'
+          });
+        }
+      }
     }
   }
 
   async deleteUser(user: User) {
-    if (user.id && confirm('¿Está seguro de eliminar este usuario?')) {
-      const userRef = doc(this.firestore, 'usuarios', user.id);
-      await deleteDoc(userRef);
-      await this.loadUsers();
-    }
-  }
+    if (user.id) {
+      const result = await Swal.fire({
+        title: '¿Eliminar usuario?',
+        text: `¿Está seguro de eliminar a ${user.nombre} ${user.apellido}? Esta acción no se puede deshacer.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6'
+      });
 
-  onAdminFileSelected(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      this.adminImageFile = file;
-    }
-  }
-
-  onPatientFileSelected(event: any, index: number) {
-    const file = event.target.files[0];
-    if (file) {
-      this.patientImageFiles[index] = file;
-    }
-  }
-
-  onSpecialistFileSelected(event: any) {
-    const file = event.target.files[0];
-    if (file) {
-      this.specialistImageFile = file;
+      if (result.isConfirmed) {
+        try {
+          const userRef = doc(this.firestore, 'usuarios', user.id);
+          await deleteDoc(userRef);
+          await this.loadUsers();
+          
+          await Swal.fire({
+            title: '¡Eliminado!',
+            text: 'El usuario ha sido eliminado correctamente',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } catch (error) {
+          await Swal.fire({
+            title: 'Error',
+            text: 'No se pudo eliminar el usuario',
+            icon: 'error'
+          });
+        }
+      }
     }
   }
 
@@ -200,16 +353,27 @@ export class UsuariosComponent implements OnInit {
         await addDoc(collection(this.firestore, 'usuarios'), userData);
         await this.secondaryAuth.signOut();
 
-        this.successMessage = 'Administrador creado exitosamente.';
+        await Swal.fire({
+          title: '¡Éxito!',
+          text: 'Administrador creado exitosamente',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
         this.showAdminModal = false;
         this.adminForm.reset();
         this.adminImageFile = null;
         await this.loadUsers();
       } catch (error: any) {
         console.error('Error al crear administrador:', error);
-        this.errorMessage = error.code === 'auth/email-already-in-use' 
-          ? 'El correo electrónico ya está en uso' 
-          : 'Error al crear el administrador';
+        await Swal.fire({
+          title: 'Error',
+          text: error.code === 'auth/email-already-in-use' 
+            ? 'El correo electrónico ya está en uso' 
+            : 'Error al crear el administrador',
+          icon: 'error'
+        });
       } finally {
         this.isLoading = false;
       }
@@ -244,16 +408,27 @@ export class UsuariosComponent implements OnInit {
         await addDoc(collection(this.firestore, 'usuarios'), userData);
         await this.secondaryAuth.signOut();
 
-        this.successMessage = 'Paciente registrado exitosamente';
+        await Swal.fire({
+          title: '¡Éxito!',
+          text: 'Paciente registrado exitosamente',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
         this.showPatientModal = false;
         this.patientForm.reset();
         this.patientImageFiles = [];
         await this.loadUsers();
       } catch (error: any) {
         console.error('Error al registrar paciente:', error);
-        this.errorMessage = error.code === 'auth/email-already-in-use' 
-          ? 'El correo electrónico ya está en uso' 
-          : 'Error al registrar el paciente';
+        await Swal.fire({
+          title: 'Error',
+          text: error.code === 'auth/email-already-in-use' 
+            ? 'El correo electrónico ya está en uso' 
+            : 'Error al registrar el paciente',
+          icon: 'error'
+        });
       } finally {
         this.isLoading = false;
       }
@@ -285,19 +460,51 @@ export class UsuariosComponent implements OnInit {
         await addDoc(collection(this.firestore, 'usuarios'), userData);
         await this.secondaryAuth.signOut();
 
-        this.successMessage = 'Especialista registrado exitosamente. Pendiente de habilitación.';
+        await Swal.fire({
+          title: '¡Éxito!',
+          text: 'Especialista registrado exitosamente. Pendiente de habilitación.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+
         this.showSpecialistModal = false;
         this.specialistForm.reset();
         this.specialistImageFile = null;
         await this.loadUsers();
       } catch (error: any) {
         console.error('Error al registrar especialista:', error);
-        this.errorMessage = error.code === 'auth/email-already-in-use' 
-          ? 'El correo electrónico ya está en uso' 
-          : 'Error al registrar el especialista';
+        await Swal.fire({
+          title: 'Error',
+          text: error.code === 'auth/email-already-in-use' 
+            ? 'El correo electrónico ya está en uso' 
+            : 'Error al registrar el especialista',
+          icon: 'error'
+        });
       } finally {
         this.isLoading = false;
       }
+    }
+  }
+
+  onAdminFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.adminImageFile = file;
+    }
+  }
+
+  onPatientFileSelected(event: any, index: number) {
+    const file = event.target.files[0];
+    if (file) {
+      this.patientImageFiles[index] = file;
+    }
+  }
+
+  onSpecialistFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.specialistImageFile = file;
     }
   }
 
