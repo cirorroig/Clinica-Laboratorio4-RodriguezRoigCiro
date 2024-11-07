@@ -23,6 +23,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { RECAPTCHA_SETTINGS, RecaptchaFormsModule, RecaptchaModule, RecaptchaSettings } from 'ng-recaptcha';
 import { ShakeOnErrorDirective } from '../../directives/shake-on-error.directive';
+import { PasswordStrengthPipe } from '../../pipes/password-strength.pipe';
 
 interface Availability {
   uid: string;
@@ -35,7 +36,7 @@ interface Availability {
   selector: 'app-registro',
   standalone: true,
   imports: [FormsModule, ReactiveFormsModule, CommonModule,RecaptchaModule,
-    RecaptchaFormsModule,ShakeOnErrorDirective],
+    RecaptchaFormsModule,ShakeOnErrorDirective,PasswordStrengthPipe],
   templateUrl: './registro.component.html',
   styleUrls: ['./registro.component.css'],
   providers: [
@@ -58,7 +59,7 @@ export class RegistroComponent {
   newSpecialty: string = '';
   isLoading = false;
   showForm = false;
-
+  clave = '';
   daysAvailable: string[] = [];
   workingHours: { start: number; end: number } = { start: 9, end: 13 };
 

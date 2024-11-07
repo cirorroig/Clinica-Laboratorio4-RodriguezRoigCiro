@@ -18,7 +18,7 @@ import {
   doc,
   Timestamp,
 } from '@angular/fire/firestore';
-
+import { CustomStylesDirective } from '../../directives/custom-styles.directive';
 interface DatoDinamico {
   clave: string;
   valor: string | number;
@@ -64,7 +64,7 @@ interface Availability {
 @Component({
   selector: 'app-mi-perfil',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule,CustomStylesDirective],
   templateUrl: './mi-perfil.component.html',
   styleUrls: ['./mi-perfil.component.css'],
 })

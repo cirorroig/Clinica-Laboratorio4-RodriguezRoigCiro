@@ -1,4 +1,4 @@
-<div class="container contenedor">
+<div class="container contenedor" >
     @if (loading) {
       <div class="text-center">
         <div class="spinner-border" role="status">
@@ -6,7 +6,10 @@
         </div>
       </div>
     } @else if (userData) {
-      <div class="row">
+      <div class="row"  [appCustomStyles]="{
+        'background-color': userData.perfil === 'patient' ? '#f3f4f6' : userData.perfil === 'specialist' ? '#e0f2fe' : '#d1fae5',
+        'padding': '1rem'
+      }">
         <div class="col-md-4">
           <div class="card">
             <div class="card-body text-center">
