@@ -135,7 +135,7 @@ private filterAvailableTimes(): void {
 
 
   formatDate(date: Date): string {
-    return format(date, 'EEEE d', { locale: es });
+    return format(date, 'yyyy-MM-dd');
   }
 
   private capitalizeFirstLetter(string: string): string {

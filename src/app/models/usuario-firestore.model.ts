@@ -6,7 +6,8 @@ export interface UsuarioFirestore {
     mail: string;
     perfil: 'patient' | 'specialist' | 'admin';
     obraSocial?: string;
-    especialidad?: string;
-    uid: string;
+    especialidades?: string[];
+  uid: string;
+  imageUrls:string[]
   }
   

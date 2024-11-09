@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import {
   Firestore,
   collectionData,
@@ -20,6 +20,21 @@ import { format } from 'date-fns';
 import Swal from 'sweetalert2';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { Router } from '@angular/router';
+
+
+interface Specialist {
+  uid: string;
+  nombre: string;
+  apellido: string;
+  especialidades: string[];
+  email: string;
+  imageUrl?: string;
+}
+
+
+
+
 @Component({
   selector: 'app-solicitar-turno',
   templateUrl: './solicitar-turno.component.html',
@@ -35,27 +50,48 @@ import { trigger, transition, style, animate } from '@angular/animations';
         animate('300ms ease-in', style({ opacity: 0, transform: 'translateY(-20px)' }))
       ])
     ])
-  ]
+  ],
+  styleUrls:["./solicitar-turno.component.css"]
 })
 export class SolicitarTurnoComponent implements OnInit {
   specialties: string[] = [];
-  specialists: UsuarioFirestore[] = [];
+  specialists: Specialist[] = [];
   selectedSpecialty?: string;
-  selectedSpecialist?: UsuarioFirestore;
+  selectedSpecialist?: Specialist;
   selectedDate?: Date;
   selectedTime?: number;
   loggedInUserUid: string = ''; // Esta propiedad se inicializa
   auth: any;
   isAdmin: boolean = false; // To track if the user is admin
   patients: UsuarioFirestore[] = []; // To hold the list of patients
+  filteredSpecialties: string[] = [];
+  private router = inject(Router);
+  constructor(private firestore: Firestore) { }
 
-  constructor(private firestore: Firestore) {}
-
-  ngOnInit(): void {
-    this.loadSpecialties();
+  async ngOnInit() {
+    await this.loadSpecialists();
+    await this.loadSpecialties()
+    console.log(this.specialists);
+    console.log(this.specialties);
+    
     this.getLoggedInUserUid(); // Llama a la función para obtener el UID del usuario
+    console.log(this.patients);
+    
   }
-
+  getSpecialtyImage(specialty: string): string {
+    // Puedes añadir la lógica para asociar una imagen a cada especialidad
+    const specialtyImages: { [key: string]: string } = {
+      'Cardiología': 'cardiologia.svg',
+      'Pediatría': 'pediatria.svg',
+      'Otorrino': 'otorrino.svg',
+      'Traumatología': 'traumatologia.svg',
+      'Oftalmología': 'oftalmologia.svg',
+      'Dermatología': 'dermatologia.svg',
+    };
+  
+    return specialtyImages[specialty] || "default.svg";
+  }
+  
   // Función para obtener el UID del usuario autenticado
   private getLoggedInUserUid(): void {
     const auth = getAuth();
@@ -78,6 +114,7 @@ export class SolicitarTurnoComponent implements OnInit {
 
       if (this.isAdmin) {
         this.loadPatients(); // Load patients if the user is an admin
+        
       }
     }
   }
@@ -85,9 +122,11 @@ export class SolicitarTurnoComponent implements OnInit {
   private loadPatients(): void {
     const patientsRef = collection(this.firestore, 'usuarios');
     const q = query(patientsRef, where('perfil', '==', 'patient')); // Assuming 'patient' is the profile for patients
-    collectionData(q, { idField: 'uid' }).subscribe(
-      (patients: UsuarioFirestore[]) => {
+    collectionData(q).subscribe(
+      (patients: UsuarioFirestore[]) => {        
         this.patients = patients; // Assign the fetched patients to the patients property
+        console.log("pacientes",this.patients);
+        
       }
     );
   }
@@ -112,41 +151,50 @@ export class SolicitarTurnoComponent implements OnInit {
     }
   }
 
+  
+  async loadSpecialists() {
+    try {
+      const specialistsRef = collection(this.firestore, 'usuarios');
+      const specialistsQuery = query(
+        specialistsRef,
+        where('perfil', '==', 'specialist')
+      );
+  
+      const querySnapshot = await getDocs(specialistsQuery);
+      
+      this.specialists = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        console.log(data);
+        return {
+          uid: data['uid'],
+          nombre: data['nombre'],
+          apellido: data['apellido'],
+          especialidades: data['especialidades'],
+          email: data['email'],
+          imageUrl: data['imageUrls'][0]// Tomamos solo la primera URL de imagen
+        } as Specialist;
+      });
+    } catch (error) {
+      console.error('Error loading specialists:', error);
+    }
+  }
+  
   onSpecialtySelect(specialty: string): void {
     this.selectedSpecialty = specialty;
-    this.selectedSpecialist = undefined;
-    this.loadSpecialists(specialty);
   }
+  
 
-  loadSpecialists(specialty: string): void {
-    const specialistsCollection = collection(this.firestore, 'usuarios');
-    const specialistsQuery = query(
-      specialistsCollection,
-      where('especialidades','array-contains', specialty),
-      where('perfil', '==', 'specialist')
-    );
-
-    getDocs(specialistsQuery)
-      .then((querySnapshot) => {
-        this.specialists = querySnapshot.docs.map((doc) => {
-          const data = doc.data() as UsuarioFirestore;
-          return {
-            ...data,
-            uid: data.uid,
-          };
-        });
-      })
-      .catch((error) => {
-        console.error('Error loading specialists: ', error);
-      });
-  }
-
-  onSpecialistSelect(specialist: UsuarioFirestore): void {
+  onSpecialistSelect(specialist: Specialist): void {
     this.selectedSpecialist = specialist;
+    this.selectedSpecialty = undefined; // Limpiamos la especialidad seleccionada previamente
+    // Filtrar especialidades según las que tenga el especialista en su array
+    this.filteredSpecialties = this.specialties.filter(specialty => specialist.especialidades.includes(specialty));
   }
+  
   onPatientSeleccion(event: Event): void {
     const selectElement = event.target as HTMLSelectElement; // Asegúrate de que target es un HTMLSelectElement
     const patientUid = selectElement.value; // Ahora puedes acceder a la propiedad value sin problemas
+
     if (patientUid) {
       console.log('UID del paciente seleccionado:', patientUid); // Verifica el UID
       this.loggedInUserUid = patientUid; // Establece el UID del paciente seleccionado
@@ -196,40 +244,12 @@ export class SolicitarTurnoComponent implements OnInit {
     return format(date, 'dd/MM/yyyy'); // Adjust the format according to your needs
   }
 
-  private async getNextAppointmentId(): Promise<number> {
-    const counterDocRef = doc(this.firestore, 'counters', 'appointments');
-    
-    try {
-      // Use transaction to ensure atomic increment
-      const newId = await runTransaction(this.firestore, async (transaction) => {
-        const counterDoc = await transaction.get(counterDocRef);
-        
-        let nextId = 1;
-        if (counterDoc.exists()) {
-          nextId = counterDoc.data()['current'] + 1;
-        }
-        
-        transaction.set(counterDocRef, { current: nextId });
-        return nextId;
-      });
-      
-      return newId;
-    } catch (error) {
-      console.error('Error getting next appointment ID:', error);
-      throw error;
-    }
-  }
-
+ 
   private async storeAppointment(): Promise<void> {
     try {
-      // Get the next appointment ID
-      const appointmentId = await this.getNextAppointmentId();
-      
-      // Format the ID to ensure consistent length (e.g., "A0001")
-      const formattedId = `A${appointmentId.toString().padStart(4, '0')}`;
-      
+
       const appointmentData = {
-        id: formattedId, // ID formateado
+
         uidPaciente: this.loggedInUserUid,
         uidEspecialista: this.selectedSpecialist?.uid,
         fecha: this.selectedDate,
@@ -259,7 +279,7 @@ export class SolicitarTurnoComponent implements OnInit {
       const appointmentsCollection = collection(this.firestore, 'turnos');
       
       // Use the formatted ID as the document ID
-      const appointmentDocRef = doc(appointmentsCollection, formattedId);
+      const appointmentDocRef = doc(appointmentsCollection);
       await setDoc(appointmentDocRef, appointmentData);
 
       // Update specialist's availability
@@ -270,8 +290,16 @@ export class SolicitarTurnoComponent implements OnInit {
         await Swal.fire({
           icon: 'success',
           title: 'Turno confirmado',
-          text: `Turno #${formattedId} confirmado para ${formattedDate} a las ${this.selectedTime}:00 hs.`,
+          text: `Turno confirmado para ${formattedDate} a las ${this.selectedTime}:00 hs.`,
         });
+        if (this.isAdmin) {
+          this.router.navigate(["/turnos"])
+
+        } else {
+          
+          this.router.navigate(["/misTurnos"])
+        }
+
       }
     } catch (error) {
       console.error('Error al registrar el turno: ', error);
@@ -284,15 +312,7 @@ export class SolicitarTurnoComponent implements OnInit {
     }
   }
 
-  // Helper method to ensure counter document exists
-  async initializeCounterIfNeeded(): Promise<void> {
-    const counterDocRef = doc(this.firestore, 'counters', 'appointments');
-    const counterDoc = await getDoc(counterDocRef);
-    
-    if (!counterDoc.exists()) {
-      await setDoc(counterDocRef, { current: 0 });
-    }
-  }
+
   private async updateSpecialistAvailability(): Promise<void> {
     // Get the availability collection and query for the selected specialist
     const availabilityCollection = collection(this.firestore, 'disponibilidad');

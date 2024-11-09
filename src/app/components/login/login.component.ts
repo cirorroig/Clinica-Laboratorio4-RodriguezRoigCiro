@@ -10,7 +10,8 @@ import { PasswordStrengthPipe } from '../../pipes/password-strength.pipe';
 import { UserTypeBadgePipe } from '../../pipes/user-type-badge.pipe';
 import { AutoFocusDirective } from '../../directives/auto-focus.directive';
 import { PasswordToggleDirective } from '../../directives/password-toggle.directive';
-import { ShakeOnErrorDirective } from '../../directives/shake-on-error.directive';
+import { trigger, style, animate, transition, state } from '@angular/animations';
+
 interface Usuario {
   email: string;
   perfil: 'admin' | 'specialist' | 'patient';
@@ -37,10 +38,39 @@ interface QuickAccessUser {
     EmailMaskPipe,
     PasswordToggleDirective,
     AutoFocusDirective,
-    ShakeOnErrorDirective
+    
   ],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  styleUrls: ['./login.component.css'],
+  animations: [
+    trigger('slideInOut', [
+      state('void', style({
+        transform: 'translateY(-100%)',
+        opacity: 0
+      })),
+      state('*', style({
+        transform: 'translateY(0)',
+        opacity: 1
+      })),
+      transition(':enter', [
+        animate('0.5s ease-out')
+      ]),
+      transition(':leave', [
+        animate('0.5s ease-in')
+      ])
+    ]),
+    trigger('fadeInOut', [
+      state('void', style({
+        opacity: 0
+      })),
+      transition(':enter', [
+        animate('0.3s ease-out')
+      ]),
+      transition(':leave', [
+        animate('0.3s ease-in')
+      ])
+    ])
+  ]
 })
 export class LoginComponent implements OnInit {
   correo = '';

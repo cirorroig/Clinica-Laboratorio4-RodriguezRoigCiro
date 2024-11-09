@@ -26,8 +26,14 @@
                   class="btn btn-outline-primary time-button"
                   (click)="selectTime(time)"
                   [class.selected]="selectedTime === time" 
-              >
-                  {{ time }}:00 hs
+              > 
+                @if(time < 12){
+
+                    {{ time }}:00 AM
+                }
+                @else {
+                    {{ time }}:00 PM
+                }
               </button>
           </ng-container>
       </div>

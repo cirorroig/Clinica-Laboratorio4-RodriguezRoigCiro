@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { AdminGuard } from './guards/admin.guard';
 import { SacarTurnosGuards } from './guards/sacar-turnos.guard';
 import { EspecialistaGuards } from './guards/especialista.guard';
+import { MisturnosGuards } from './guards/misturnos.guard';
 export const routes: Routes = [
   {
     path: 'home',
@@ -35,6 +36,7 @@ export const routes: Routes = [
       import('./components/mis-turnos/mis-turnos.component').then(
         (m) => m.MisTurnosComponent
       ),
+      canActivate:[MisturnosGuards]
   },
   {
     path: 'solicitarTurno',

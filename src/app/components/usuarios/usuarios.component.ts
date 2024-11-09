@@ -1,28 +1,43 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { FormGroup, FormBuilder, Validators, FormControl } from '@angular/forms';
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  updateDoc, 
-  deleteDoc, 
+import {
+  FormGroup,
+  FormBuilder,
+  Validators,
+  FormControl,
+} from '@angular/forms';
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
   addDoc,
-  Firestore, 
+  Firestore,
   query,
   where,
-  Timestamp
+  Timestamp,
 } from '@angular/fire/firestore';
-import { Storage, ref, uploadBytes, getDownloadURL } from '@angular/fire/storage';
-import { Auth, createUserWithEmailAndPassword, sendEmailVerification } from '@angular/fire/auth';
+import {
+  Storage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+} from '@angular/fire/storage';
+import {
+  Auth,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from '@angular/fire/auth';
 import { FirebaseApp, initializeApp } from '@angular/fire/app';
 import { getAuth } from 'firebase/auth';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
 
 interface User {
-  uid:string
+  uid: string;
   id?: string;
   nombre: string;
   apellido: string;
@@ -73,19 +88,17 @@ interface Turno {
   datosDinamicos: DatoDinamico[];
   diagnostico: string;
   comentarioAtencion: string;
+  especialista: string;
 }
-
-
 
 @Component({
   selector: 'app-usuarios',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './usuarios.component.html',
-  styleUrls: ['./usuarios.component.css']
+  styleUrls: ['./usuarios.component.css'],
 })
 export class UsuariosComponent implements OnInit {
-  
   users: User[] = [];
   showAdminModal = false;
   showPatientModal = false;
@@ -96,7 +109,12 @@ export class UsuariosComponent implements OnInit {
   adminImageFile: File | null = null;
   patientImageFiles: File[] = [];
   specialistImageFile: File | null = null;
-  specialties: string[] = ['Cardiología', 'Dermatología', 'Pediatría', 'Traumatología'];
+  specialties: string[] = [
+    'Cardiología',
+    'Dermatología',
+    'Pediatría',
+    'Traumatología',
+  ];
   newSpecialty: string = '';
   errorMessage: string = '';
   successMessage: string = '';
@@ -130,7 +148,7 @@ export class UsuariosComponent implements OnInit {
       messagingSenderId: '295037508816',
     };
 
-    this.secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
+    this.secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
     this.secondaryAuth = getAuth(this.secondaryApp);
   }
 
@@ -139,67 +157,90 @@ export class UsuariosComponent implements OnInit {
   }
   downloadUsersExcel() {
     // Preparar los datos para el Excel
-    const excelData = this.users.map(user => ({
+    const excelData = this.users.map((user) => ({
       Nombre: user.nombre,
       Apellido: user.apellido,
       Edad: user.edad,
       DNI: user.dni,
       Email: user.email,
       Perfil: user.perfil,
-      Estado: user.perfil === 'specialist' ? (user.habilitado ? 'Habilitado' : 'Deshabilitado') : 'N/A',
-      Especialidad: user.perfil === 'admin' 
-        ? 'Administrador' 
-        : user.perfil === 'specialist' 
-          ? 'Especialista' 
+      Estado:
+        user.perfil === 'specialist'
+          ? user.habilitado
+            ? 'Habilitado'
+            : 'Deshabilitado'
+          : 'N/A',
+      Especialidad:
+        user.perfil === 'admin'
+          ? 'Administrador'
+          : user.perfil === 'specialist'
+          ? 'Especialista'
           : 'Paciente',
-      'Obra Social': user.obraSocial || 'N/A'
+      'Obra Social': user.obraSocial || 'N/A',
     }));
-    
-  
+
     // Crear el libro de trabajo
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Usuarios');
-  
+
     // Generar el archivo
     XLSX.writeFile(workbook, 'usuarios_clinica.xlsx');
   }
   createBaseForm(): FormGroup<BaseFormControls> {
     return this.fb.group<BaseFormControls>({
-      nombre: this.fb.control('', [Validators.required, Validators.minLength(2)]),
-      apellido: this.fb.control('', [Validators.required, Validators.minLength(2)]),
-      edad: this.fb.control('', [Validators.required, Validators.min(1), Validators.max(120)]),
-      dni: this.fb.control('', [Validators.required, Validators.pattern('^[0-9]{8}$')]),
-      email: this.fb.control('', [Validators.required, Validators.pattern("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")]),
-      password: this.fb.control('', [Validators.required, Validators.minLength(6)])
+      nombre: this.fb.control('', [
+        Validators.required,
+        Validators.minLength(2),
+      ]),
+      apellido: this.fb.control('', [
+        Validators.required,
+        Validators.minLength(2),
+      ]),
+      edad: this.fb.control('', [
+        Validators.required,
+        Validators.min(1),
+        Validators.max(120),
+      ]),
+      dni: this.fb.control('', [
+        Validators.required,
+        Validators.pattern('^[0-9]{8}$'),
+      ]),
+      email: this.fb.control('', [
+        Validators.required,
+        Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$'),
+      ]),
+      password: this.fb.control('', [
+        Validators.required,
+        Validators.minLength(6),
+      ]),
     });
   }
 
   createPatientForm(): FormGroup<PatientFormControls> {
     return this.fb.group<PatientFormControls>({
       ...this.createBaseForm().controls,
-      obraSocial: this.fb.control('', Validators.required)
+      obraSocial: this.fb.control('', Validators.required),
     });
   }
 
   createSpecialistForm(): FormGroup<SpecialistFormControls> {
     return this.fb.group<SpecialistFormControls>({
       ...this.createBaseForm().controls,
-      especialidad: this.fb.control('', Validators.required)
+      especialidad: this.fb.control('', Validators.required),
     });
   }
 
   async loadUsers() {
     const usersCollection = collection(this.firestore, 'usuarios');
     const snapshot = await getDocs(usersCollection);
-    this.users = snapshot.docs.map(doc => ({
+    this.users = snapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data() as User
+      ...(doc.data() as User),
     }));
   }
   async verHistorial(user: User) {
-    console.log("hola");
-    
+
     this.loadingHistorial = true;
     this.showHistorialModal = true;
     this.selectedUserName = `${user.nombre} ${user.apellido}`;
@@ -216,24 +257,48 @@ export class UsuariosComponent implements OnInit {
 
       const querySnapshot = await getDocs(q);
 
-      this.selectedUserHistorial = querySnapshot.docs
-        .map((doc) => {
+      // Esperamos la resolución de todas las promesas con Promise.all
+      this.selectedUserHistorial = await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
           const data = doc.data();
+
+          // Consulta para obtener el especialista usando uidEspecialista
+          const usuariosRef = collection(this.firestore, 'usuarios');
+          const espQuery = query(
+            usuariosRef,
+            where('uid', '==', data['uidEspecialista'])
+          );
+          const espSnapshot = await getDocs(espQuery);
+
+          // Obtenemos el nombre y apellido del especialista
+          let especialistaNombre = '';
+          if (!espSnapshot.empty) {
+            const espData = espSnapshot.docs[0].data();
+            especialistaNombre = `${espData['nombre']} ${espData['apellido']}`;
+          }
+          console.log(especialistaNombre);
           return {
             ...data,
             id: doc.id,
-            fecha: data['fecha'] instanceof Timestamp 
-              ? data['fecha'].toDate() 
-              : new Date(data['fecha']),
+            especialista: especialistaNombre, // Nombre y apellido del especialista
+            fecha:
+              data['fecha'] instanceof Timestamp
+                ? data['fecha'].toDate()
+                : new Date(data['fecha']),
           } as Turno;
         })
-        .sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+      );
+
+      // Ordenamos los turnos por fecha de forma descendente
+      this.selectedUserHistorial.sort(
+        (a, b) => b.fecha.getTime() - a.fecha.getTime()
+      );
     } catch (error) {
       console.error('Error al cargar el historial clínico:', error);
       await Swal.fire({
         title: 'Error',
         text: 'No se pudo cargar el historial clínico',
-        icon: 'error'
+        icon: 'error',
       });
     } finally {
       this.loadingHistorial = false;
@@ -256,7 +321,9 @@ export class UsuariosComponent implements OnInit {
     if (user.id) {
       const result = await Swal.fire({
         title: `¿${user.habilitado ? 'Deshabilitar' : 'Habilitar'} usuario?`,
-        text: `¿Está seguro que desea ${user.habilitado ? 'deshabilitar' : 'habilitar'} a ${user.nombre} ${user.apellido}?`,
+        text: `¿Está seguro que desea ${
+          user.habilitado ? 'deshabilitar' : 'habilitar'
+        } a ${user.nombre} ${user.apellido}?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: user.habilitado ? 'Deshabilitar' : 'Habilitar',
@@ -268,22 +335,24 @@ export class UsuariosComponent implements OnInit {
         try {
           const userRef = doc(this.firestore, 'usuarios', user.id);
           await updateDoc(userRef, {
-            habilitado: !user.habilitado
+            habilitado: !user.habilitado,
           });
           await this.loadUsers();
-          
+
           await Swal.fire({
             title: '¡Actualizado!',
-            text: `El usuario ha sido ${user.habilitado ? 'deshabilitado' : 'habilitado'} correctamente`,
+            text: `El usuario ha sido ${
+              user.habilitado ? 'deshabilitado' : 'habilitado'
+            } correctamente`,
             icon: 'success',
             timer: 2000,
-            showConfirmButton: false
+            showConfirmButton: false,
           });
         } catch (error) {
           await Swal.fire({
             title: 'Error',
             text: 'No se pudo actualizar el estado del usuario',
-            icon: 'error'
+            icon: 'error',
           });
         }
       }
@@ -300,7 +369,7 @@ export class UsuariosComponent implements OnInit {
         confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6'
+        cancelButtonColor: '#3085d6',
       });
 
       if (result.isConfirmed) {
@@ -308,19 +377,19 @@ export class UsuariosComponent implements OnInit {
           const userRef = doc(this.firestore, 'usuarios', user.id);
           await deleteDoc(userRef);
           await this.loadUsers();
-          
+
           await Swal.fire({
             title: '¡Eliminado!',
             text: 'El usuario ha sido eliminado correctamente',
             icon: 'success',
             timer: 2000,
-            showConfirmButton: false
+            showConfirmButton: false,
           });
         } catch (error) {
           await Swal.fire({
             title: 'Error',
             text: 'No se pudo eliminar el usuario',
-            icon: 'error'
+            icon: 'error',
           });
         }
       }
@@ -346,7 +415,7 @@ export class UsuariosComponent implements OnInit {
           perfil: 'admin',
           habilitado: true,
           imageUrls: [imageUrl],
-          fechaCreacion: new Date().toISOString()
+          fechaCreacion: new Date().toISOString(),
         };
         delete userData.password;
 
@@ -358,7 +427,7 @@ export class UsuariosComponent implements OnInit {
           text: 'Administrador creado exitosamente',
           icon: 'success',
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: false,
         });
 
         this.showAdminModal = false;
@@ -369,10 +438,11 @@ export class UsuariosComponent implements OnInit {
         console.error('Error al crear administrador:', error);
         await Swal.fire({
           title: 'Error',
-          text: error.code === 'auth/email-already-in-use' 
-            ? 'El correo electrónico ya está en uso' 
-            : 'Error al crear el administrador',
-          icon: 'error'
+          text:
+            error.code === 'auth/email-already-in-use'
+              ? 'El correo electrónico ya está en uso'
+              : 'Error al crear el administrador',
+          icon: 'error',
         });
       } finally {
         this.isLoading = false;
@@ -391,10 +461,12 @@ export class UsuariosComponent implements OnInit {
           this.patientForm.get('password')?.value ?? ''
         );
         await sendEmailVerification(userCredential.user);
-        
-        const imageUrls = await Promise.all(this.patientImageFiles.map((file, index) => 
-          this.uploadImage(file, `patient_${index}`)
-        ));
+
+        const imageUrls = await Promise.all(
+          this.patientImageFiles.map((file, index) =>
+            this.uploadImage(file, `patient_${index}`)
+          )
+        );
 
         const userData = {
           uid: userCredential.user.uid,
@@ -402,7 +474,7 @@ export class UsuariosComponent implements OnInit {
           perfil: 'patient',
           imageUrls,
           fechaRegistro: new Date().toISOString(),
-          habilitado: true
+          habilitado: true,
         };
         delete userData.password;
         await addDoc(collection(this.firestore, 'usuarios'), userData);
@@ -413,7 +485,7 @@ export class UsuariosComponent implements OnInit {
           text: 'Paciente registrado exitosamente',
           icon: 'success',
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: false,
         });
 
         this.showPatientModal = false;
@@ -424,10 +496,11 @@ export class UsuariosComponent implements OnInit {
         console.error('Error al registrar paciente:', error);
         await Swal.fire({
           title: 'Error',
-          text: error.code === 'auth/email-already-in-use' 
-            ? 'El correo electrónico ya está en uso' 
-            : 'Error al registrar el paciente',
-          icon: 'error'
+          text:
+            error.code === 'auth/email-already-in-use'
+              ? 'El correo electrónico ya está en uso'
+              : 'Error al registrar el paciente',
+          icon: 'error',
         });
       } finally {
         this.isLoading = false;
@@ -446,15 +519,18 @@ export class UsuariosComponent implements OnInit {
           this.specialistForm.get('password')?.value ?? ''
         );
         await sendEmailVerification(userCredential.user);
-        
-        const imageUrl = await this.uploadImage(this.specialistImageFile, 'specialist');
+
+        const imageUrl = await this.uploadImage(
+          this.specialistImageFile,
+          'specialist'
+        );
         const userData = {
           uid: userCredential.user.uid,
           ...this.specialistForm.value,
           perfil: 'specialist',
           imageUrls: [imageUrl],
           fechaRegistro: new Date().toISOString(),
-          habilitado: false
+          habilitado: false,
         };
         delete userData.password;
         await addDoc(collection(this.firestore, 'usuarios'), userData);
@@ -465,7 +541,7 @@ export class UsuariosComponent implements OnInit {
           text: 'Especialista registrado exitosamente. Pendiente de habilitación.',
           icon: 'success',
           timer: 2000,
-          showConfirmButton: false
+          showConfirmButton: false,
         });
 
         this.showSpecialistModal = false;
@@ -476,10 +552,11 @@ export class UsuariosComponent implements OnInit {
         console.error('Error al registrar especialista:', error);
         await Swal.fire({
           title: 'Error',
-          text: error.code === 'auth/email-already-in-use' 
-            ? 'El correo electrónico ya está en uso' 
-            : 'Error al registrar el especialista',
-          icon: 'error'
+          text:
+            error.code === 'auth/email-already-in-use'
+              ? 'El correo electrónico ya está en uso'
+              : 'Error al registrar el especialista',
+          icon: 'error',
         });
       } finally {
         this.isLoading = false;
@@ -548,4 +625,144 @@ export class UsuariosComponent implements OnInit {
     this.resetForms();
     this.showSpecialistModal = true;
   }
+  async descargarHistorialPDF(user: User) {
+    try {
+      this.loadingHistorial = true;
+      const turnosRef = collection(this.firestore, 'turnos');
+      const q = query(
+        turnosRef,
+        where('uidPaciente', '==', user.uid),
+        where('status', '==', 'COMPLETADO')
+      );
+  
+      const querySnapshot = await getDocs(q);
+      const turnos = await (await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
+          const data = doc.data();
+
+          // Consulta para obtener el nombre y apellido del especialista
+          const usuariosRef = collection(this.firestore, 'usuarios');
+          const espQuery = query(
+            usuariosRef,
+            where('uid', '==', data['uidEspecialista'])
+          );
+          const espSnapshot = await getDocs(espQuery);
+
+          let especialistaNombre = '';
+          if (!espSnapshot.empty) {
+            const espData = espSnapshot.docs[0].data();
+            especialistaNombre = `${espData['nombre']} ${espData['apellido']}`;
+          }
+
+          return {
+            ...data,
+            id: doc.id,
+            especialista: especialistaNombre, // Nombre y apellido del especialista
+            fecha: data['fecha'] instanceof Timestamp
+              ? data['fecha'].toDate()
+              : new Date(data['fecha']),
+          } as Turno;
+        })
+      )).sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+
+      const pdf = new jsPDF();
+      let yPos = 20;
+
+      // Título
+      pdf.setFontSize(16);
+      pdf.text(`Historial Clínico - ${user.nombre} ${user.apellido}`, 20, yPos);
+      
+      yPos += 20;
+      pdf.setFontSize(12);
+
+      for (const turno of turnos) {
+        // Verificar si necesitamos una nueva página
+        if (yPos > 250) {
+          pdf.addPage();
+          yPos = 20;
+        }
+
+        const fecha = new Date(turno.fecha).toLocaleDateString();
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`Fecha: ${fecha} - Hora: ${turno.hora}:00 - ${turno.especialidad}`, 20, yPos);
+        yPos += 10;
+
+        // Nombre del especialista
+        pdf.text(`Especialista: ${turno.especialista}`, 20, yPos);
+        yPos += 10;
+
+        pdf.setFont("helvetica", "normal");
+        if (turno.altura) {
+          pdf.text(`Altura: ${turno.altura} cm`, 30, yPos);
+          yPos += 7;
+        }
+        if (turno.peso) {
+          pdf.text(`Peso: ${turno.peso} kg`, 30, yPos);
+          yPos += 7;
+        }
+        if (turno.temperatura) {
+          pdf.text(`Temperatura: ${turno.temperatura}°C`, 30, yPos);
+          yPos += 7;
+        }
+        if (turno.presion) {
+          pdf.text(`Presión: ${turno.presion}`, 30, yPos);
+          yPos += 7;
+        }
+
+        if (turno.datosDinamicos && this.hasDatosDinamicosValidos(turno.datosDinamicos)) {
+          pdf.setFont("helvetica", "bold");
+          pdf.text("Datos Adicionales:", 20, yPos);
+          yPos += 7;
+          pdf.setFont("helvetica", "normal");
+          
+          for (const dato of turno.datosDinamicos) {
+            if (dato.clave && dato.valor) {
+              pdf.text(`${dato.clave}: ${dato.valor}`, 30, yPos);
+              yPos += 7;
+            }
+          }
+        }
+
+        if (turno.diagnostico) {
+          pdf.setFont("helvetica", "bold");
+          pdf.text("Diagnóstico:", 20, yPos);
+          yPos += 7;
+          pdf.setFont("helvetica", "normal");
+          pdf.text(turno.diagnostico, 30, yPos);
+          yPos += 7;
+        }
+
+        if (turno.comentarioAtencion) {
+          pdf.setFont("helvetica", "bold");
+          pdf.text("Comentarios:", 20, yPos);
+          yPos += 7;
+          pdf.setFont("helvetica", "normal");
+          pdf.text(turno.comentarioAtencion, 30, yPos);
+          yPos += 7;
+        }
+
+        yPos += 10; // Espacio entre turnos
+      }
+
+      pdf.save(`historial_${user.apellido}_${user.nombre}.pdf`);
+
+      await Swal.fire({
+        title: '¡Éxito!',
+        text: 'Historial descargado correctamente',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      console.error('Error al descargar el historial:', error);
+      await Swal.fire({
+        title: 'Error',
+        text: 'No se pudo descargar el historial clínico',
+        icon: 'error'
+      });
+    } finally {
+      this.loadingHistorial = false;
+    }
+}
+
 }

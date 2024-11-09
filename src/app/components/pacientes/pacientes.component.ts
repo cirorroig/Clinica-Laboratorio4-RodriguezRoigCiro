@@ -30,6 +30,7 @@ interface Turno {
   datosDinamicos: DatoDinamico[];
   diagnostico: string;
   comentarioAtencion: string;
+  calificacion:string
 }
 
 interface Paciente {
@@ -39,6 +40,7 @@ interface Paciente {
   edad: number;
   email: string;
   turnos: Turno[];
+  imagen:string
 }
 
 @Component({
@@ -56,7 +58,8 @@ export class PacientesComponent implements OnInit {
   constructor(
     private firestore: Firestore,
     private auth: Auth
-  ) {}
+  ) {
+  }
 
   ngOnInit() {
     this.isLoading = true;
@@ -110,14 +113,17 @@ export class PacientesComponent implements OnInit {
         const pacienteData = pacienteSnapshot.docs[0]?.data();
         
         if (pacienteData) {
+          console.log(pacienteData);
+          
           return {
             uid: pacienteData['uid'],
             nombre: pacienteData['nombre'],
             apellido: pacienteData['apellido'],
             edad: pacienteData['edad'],
             email: pacienteData['email'],
-            turnos: pacienteMap.get(uid)?.sort((a, b) => b.fecha.getTime() - a.fecha.getTime()) || []
-          };
+            turnos: pacienteMap.get(uid)?.sort((a, b) => b.fecha.getTime() - a.fecha.getTime()) || [],
+            imagen: pacienteData['imageUrls'][0], // Accede al primer elemento de imageUrls
+        };
         }
         return null;
       });
@@ -147,5 +153,11 @@ export class PacientesComponent implements OnInit {
     } else {
       this.expandedIndexes.add(index);
     }
+  }
+  formatTime(time: string): string {
+    const hour = parseInt(time);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const formattedHour = hour % 12 || 12;
+    return `${formattedHour}:00 ${ampm}`;
   }
 }

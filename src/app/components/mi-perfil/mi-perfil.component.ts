@@ -23,6 +23,8 @@ interface DatoDinamico {
   clave: string;
   valor: string | number;
 }
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Turno {
   id: string;
@@ -39,6 +41,7 @@ interface Turno {
   datosDinamicos: DatoDinamico[];
   diagnostico: string;
   comentarioAtencion: string;
+  especialista:string
 }
 
 interface UserData {
@@ -61,6 +64,15 @@ interface Availability {
   fechasTomadas: string[];
 }
 
+
+interface Specialist {
+  uid: string;
+  nombre: string;
+  apellido: string;
+  especialidades: string[];
+  email: string;
+  imageUrl?: string;
+}
 @Component({
   selector: 'app-mi-perfil',
   standalone: true,
@@ -88,6 +100,11 @@ export class MiPerfilComponent implements OnInit {
   successMessage = '';
   historialClinico: Turno[] = [];
   loadingHistorial = true;
+  specialists: Specialist[] = [];
+  filteredSpecialists: Specialist[] = [];
+  selectedSpecialistId: string | null = null;
+  logo: HTMLImageElement | null = null;
+  
   private auth = inject(Auth);
   private firestore = inject(Firestore);
   private fb = inject(FormBuilder);
@@ -98,15 +115,21 @@ export class MiPerfilComponent implements OnInit {
       horarioInicio: [8, [Validators.required]],
       horarioFin: [20, [Validators.required]],
     });
+  
+    // Precargar el logo
+    this.logo = new Image();
+    this.logo.src = '/logo.png';
   }
 
-  ngOnInit() {
+  async ngOnInit() {
+    await this.loadSpecialists()
+    console.log("especialistas",this.specialists);
     onAuthStateChanged(this.auth, async (user) => {
       if (user) {
         await this.loadUserData();
         if (this.userData?.perfil === 'patient') {
           await this.loadHistorialClinico();
-          console.log(this.historialClinico);
+
         }
       } else {
         this.errorMessage = 'Usuario no autenticado';
@@ -122,27 +145,46 @@ export class MiPerfilComponent implements OnInit {
         turnosRef,
         where('uidPaciente', '==', this.userData?.uid),
         where('status', '==', 'COMPLETADO'),
-        // Asegurarse de que al menos uno de los datos clínicos no sea null
         where('altura', '!=', null)
       );
-      console.log(q);
-
+  
       const querySnapshot = await getDocs(q);
-
-      this.historialClinico = querySnapshot.docs
-        .map((doc) => {
+  
+      // Esperamos la resolución de todas las promesas con Promise.all
+      this.historialClinico = await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
           const data = doc.data();
+  
+          // Consulta para obtener el especialista usando uidEspecialista
+          const usuariosRef = collection(this.firestore, 'usuarios');
+          const espQuery = query(
+            usuariosRef,
+            where('uid', '==', data['uidEspecialista'])
+          );
+          const espSnapshot = await getDocs(espQuery);
+  
+          // Obtenemos el nombre y apellido del especialista
+          let especialistaNombre = '';
+          if (!espSnapshot.empty) {
+            const espData = espSnapshot.docs[0].data();
+            especialistaNombre = `${espData['nombre']} ${espData['apellido']}`;
+          }
+  
           return {
             ...data,
             id: doc.id,
-            // Convertir explícitamente el Timestamp a Date
+            especialista: especialistaNombre, // Nombre y apellido del especialista
             fecha:
               data['fecha'] instanceof Timestamp
                 ? data['fecha'].toDate()
                 : new Date(data['fecha']),
           } as Turno;
         })
-        .sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+      );
+  
+      // Ordenamos los turnos por fecha de forma descendente
+      this.historialClinico.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+      this.filterSpecialistsByHistory();
     } catch (error) {
       console.error('Error al cargar el historial clínico:', error);
       this.errorMessage = 'Error al cargar el historial clínico';
@@ -150,6 +192,7 @@ export class MiPerfilComponent implements OnInit {
       this.loadingHistorial = false;
     }
   }
+  
   // En la clase MiPerfilComponent, añade este método
   trackByTurno(index: number, turno: Turno): string {
     return turno.id;
@@ -182,7 +225,40 @@ export class MiPerfilComponent implements OnInit {
       this.loading = false;
     }
   }
+  async loadSpecialists() {
+    try {
+      const specialistsRef = collection(this.firestore, 'usuarios');
+      const specialistsQuery = query(
+        specialistsRef,
+        where('perfil', '==', 'specialist')
+      );
+  
+      const querySnapshot = await getDocs(specialistsQuery);
+      
+      this.specialists = querySnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          uid: data['uid'],
+          nombre: data['nombre'],
+          apellido: data['apellido'],
+          especialidades: data['especialidades'],
+          email: data['email'],
+          imageUrl: data['imageUrls'][0]// Tomamos solo la primera URL de imagen
+        } as Specialist;
+      });
 
+    } catch (error) {
+      console.error('Error loading specialists:', error);
+    }
+  }
+  private filterSpecialistsByHistory() {
+    const specialistIds = new Set(this.historialClinico.map(turno => turno.uidEspecialista));
+    this.filteredSpecialists = this.specialists.filter(specialist => 
+      specialistIds.has(specialist.uid)
+    );
+    console.log(this.filteredSpecialists);
+    
+  }
   private async loadAvailability() {
     try {
       const availabilityRef = collection(this.firestore, 'disponibilidad');
@@ -280,6 +356,159 @@ export class MiPerfilComponent implements OnInit {
       return new Date(timestamp.seconds * 1000);
     } else {
       return new Date(timestamp);
+    }
+  }
+  private async addPDFHeader(doc: jsPDF, title: string) {
+    return new Promise<number>((resolve) => {
+      if (this.logo) {
+        // Agregar logo
+        doc.addImage(this.logo, 'PNG', 20, 10, 40, 40);
+        
+        // Título del informe
+        doc.setFontSize(20);
+        doc.text(title, 70, 30);
+        
+        // Fecha de emisión
+        doc.setFontSize(12);
+        doc.text(`Fecha de emisión: ${new Date().toLocaleDateString()}`, 70, 40);
+        
+        // Información del paciente
+        if (this.userData) {
+          doc.setFontSize(12);
+          doc.text(`Paciente: ${this.userData.nombre} ${this.userData.apellido}`, 20, 60);
+          doc.text(`DNI: ${this.userData.dni}`, 20, 70);
+          doc.text(`Email: ${this.userData.email}`, 20, 80);
+          if (this.userData.obraSocial) {
+            doc.text(`Obra Social: ${this.userData.obraSocial}`, 20, 90);
+          }
+        }
+        resolve(100); // Retorna la posición Y donde termina el encabezado
+      } else {
+        resolve(20);
+      }
+    });
+  }
+  
+  private async addTurnoToPDF(doc: jsPDF, turno: Turno, yPos: number): Promise<number> {
+    doc.setFontSize(14);
+    doc.text(`Fecha: ${turno.fecha.toLocaleDateString()} - ${turno.hora}`, 20, yPos);
+    doc.setFontSize(12);
+    doc.text(`Especialidad: ${turno.especialidad}`, 20, yPos + 7);
+    doc.text(`Especialista: ${turno.especialista}`, 20, yPos + 14);
+  
+    // Tabla de datos vitales
+    const tableData = [
+      ['Altura', 'Peso', 'Temperatura', 'Presión'],
+      [
+        `${turno.altura || '-'} cm`,
+        `${turno.peso || '-'} kg`,
+        `${turno.temperatura || '-'} °C`,
+        turno.presion || '-'
+      ]
+    ];
+  
+    autoTable(doc, {
+      startY: yPos + 20,
+      head: [tableData[0]],
+      body: [tableData[1]],
+      theme: 'grid',
+      styles: { fontSize: 10, cellPadding: 5 },
+      margin: { left: 20 }
+    });
+  
+    let currentY = (doc as any).lastAutoTable.finalY + 10;
+  
+    // Diagnóstico
+    doc.setFontSize(12);
+    doc.text('Diagnóstico:', 20, currentY);
+    doc.setFontSize(10);
+    const diagnosticoLines = doc.splitTextToSize(turno.diagnostico || 'No especificado', 170);
+    doc.text(diagnosticoLines, 20, currentY + 5);
+    
+    currentY += 10 + (diagnosticoLines.length * 5);
+  
+    // Comentarios
+    doc.setFontSize(12);
+    doc.text('Comentarios:', 20, currentY);
+    doc.setFontSize(10);
+    const comentarioLines = doc.splitTextToSize(turno.comentarioAtencion || 'Sin comentarios', 170);
+    doc.text(comentarioLines, 20, currentY + 5);
+  
+    return currentY + 20 + (comentarioLines.length * 5);
+  }
+  
+  async generateFullHistoryPDF() {
+    try {
+      const doc = new jsPDF();
+      let yPos = await this.addPDFHeader(doc, 'Historial Clínico Completo');
+  
+      // Ordenar turnos por fecha descendente
+      const sortedTurnos = [...this.historialClinico].sort(
+        (a, b) => b.fecha.getTime() - a.fecha.getTime()
+      );
+  
+      for (let i = 0; i < sortedTurnos.length; i++) {
+        const turno = sortedTurnos[i];
+        
+        // Verificar si necesitamos una nueva página
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+  
+        yPos = await this.addTurnoToPDF(doc, turno, yPos);
+        
+        // Agregar línea separadora entre turnos
+        if (i < sortedTurnos.length - 1) {
+          doc.setDrawColor(200);
+          doc.line(20, yPos, 190, yPos);
+          yPos += 10;
+        }
+      }
+  
+      doc.save(`historial_clinico_completo_${this.userData?.apellido}.pdf`);
+      
+    } catch (error) {
+      console.error('Error generando PDF completo:', error);
+      this.errorMessage = 'Error al generar el PDF del historial completo';
+    }
+  }
+  
+  async generateSpecialistPDF(specialistId: string) {
+    try {
+      const specialist = this.specialists.find(s => s.uid === specialistId);
+      if (!specialist) return;
+  
+      const doc = new jsPDF();
+      let yPos = await this.addPDFHeader(doc, 
+        `Historial de Atenciones - ${specialist.nombre} ${specialist.apellido}`);
+  
+      const specialistTurnos = this.historialClinico
+        .filter(turno => turno.uidEspecialista === specialistId)
+        .sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
+  
+      for (let i = 0; i < specialistTurnos.length; i++) {
+        const turno = specialistTurnos[i];
+        
+        if (yPos > 250) {
+          doc.addPage();
+          yPos = 20;
+        }
+  
+        yPos = await this.addTurnoToPDF(doc, turno, yPos);
+        
+        if (i < specialistTurnos.length - 1) {
+          doc.setDrawColor(200);
+          doc.line(20, yPos, 190, yPos);
+          yPos += 10;
+        }
+      }
+  
+      doc.save(`historial_${specialist.apellido}_${this.userData?.apellido}.pdf`);
+      
+    } catch (error) {
+      console.error('Error generando PDF del especialista:', error);
+      this.errorMessage = 'Error al generar el PDF del especialista';
     }
   }
 }

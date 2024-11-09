@@ -22,8 +22,8 @@ import {
 } from '@angular/fire/storage';
 import { CommonModule } from '@angular/common';
 import { RECAPTCHA_SETTINGS, RecaptchaFormsModule, RecaptchaModule, RecaptchaSettings } from 'ng-recaptcha';
-import { ShakeOnErrorDirective } from '../../directives/shake-on-error.directive';
 import { PasswordStrengthPipe } from '../../pipes/password-strength.pipe';
+import { trigger, style, animate, transition, state } from '@angular/animations';
 
 interface Availability {
   uid: string;
@@ -36,7 +36,7 @@ interface Availability {
   selector: 'app-registro',
   standalone: true,
   imports: [FormsModule, ReactiveFormsModule, CommonModule,RecaptchaModule,
-    RecaptchaFormsModule,ShakeOnErrorDirective,PasswordStrengthPipe],
+    RecaptchaFormsModule,PasswordStrengthPipe],
   templateUrl: './registro.component.html',
   styleUrls: ['./registro.component.css'],
   providers: [
@@ -47,6 +47,35 @@ interface Availability {
       } as RecaptchaSettings,
     },
   ],
+  animations: [
+    trigger('slideInOut', [
+      state('void', style({
+        transform: 'translateY(-100%)',
+        opacity: 0
+      })),
+      state('*', style({
+        transform: 'translateY(0)',
+        opacity: 1
+      })),
+      transition(':enter', [
+        animate('0.5s ease-out')
+      ]),
+      transition(':leave', [
+        animate('0.5s ease-in')
+      ])
+    ]),
+    trigger('fadeInOut', [
+      state('void', style({
+        opacity: 0
+      })),
+      transition(':enter', [
+        animate('0.3s ease-out')
+      ]),
+      transition(':leave', [
+        animate('0.3s ease-in')
+      ])
+    ])
+  ]
 })
 export class RegistroComponent {
   registrationForm: FormGroup;

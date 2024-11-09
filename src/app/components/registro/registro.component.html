@@ -1,7 +1,7 @@
 <main class="vh-100">
   <div class="container">
     @if (!showForm) {
-    <div class="selection-container">
+    <div class="selection-container"[@slideInOut]>
       <div class="text-center mb-5 mt-5 pt-5">
         <h1 class="display-5 fw-bold">¿Qué tipo de usuario desea registrar?</h1>
       </div>
@@ -15,7 +15,7 @@
       </div>
     </div>
     } @else {
-    <div class="mt-5 pt-5">
+    <div class="mt-5 pt-5"[@slideInOut]>
       <form [formGroup]="registrationForm" class="form-signin w-100 m-auto">
         <div class="text-center mb-4">
           <h1 class="h3 mb-3 fw-normal">Registro</h1>

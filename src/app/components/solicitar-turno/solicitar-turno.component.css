@@ -1,36 +1,88 @@
-/* Add some spacing and rounded borders to match the button requirements */
-.btn-group {
-    margin: 0.5em 0.25em;
+.container {
+  padding: 20px;
 }
 
-.rounded-pill {
-    border-radius: 50px;
+.specialist-btn {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-right: 5px;
+}
+
+.specialist-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.specialist-name {
+  position: relative;
+  z-index: 1;
+  color: rgb(0, 0, 0);
+  font-weight: bold;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* Estilos para especialidades */
+.specialty-btn {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 120px;
+  height: 120px;
+  flex-direction: column;
+
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.specialty-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  opacity: 0.7;
+}
+
+.specialty-name {
+  position: relative;
+  z-index: 1;
+  color: white;
+  font-weight: bold;
+  padding-left: 10px;
+  font-size: 1rem;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.alert-info {
+  background-color: #cff4fc;
+  border: 1px solid #b6effb;
+  color: #055160;
+}
+
+.btn-group {
+  margin: 0.5em 0.25em;
 }
 
 .date-picker-container {
-    margin-bottom: 1em; /* Espaciado adicional para el contenedor del date picker */
+  margin-bottom: 1em;
 }
 
-.days-grid {
-    display: grid; /* Usar grid para organizar los días */
-    grid-template-columns: repeat(7, 1fr); /* Ajustar la cantidad de columnas (7 para una semana) */
-    gap: 0.5em; /* Espacio entre los botones */
+.componente {
+  width: 100%;
 }
-
-.day-button {
-    width: 100%; /* Hacer que los botones ocupen el 100% del contenedor */
-}
-.componente{
-    width: 100% ;
-}
-.alert {
-    padding: 1rem;
-    border-radius: 0.25rem;
-    margin-bottom: 1rem;
-  }
-  
-  .alert-info {
-    background-color: #cff4fc;
-    border: 1px solid #b6effb;
-    color: #055160;
-  }
