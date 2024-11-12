@@ -62,7 +62,7 @@
             <input
               type="text"
               class="form-control"
-              placeholder="Ingrese un valor de altura, peso, presión o temperatura"
+              placeholder="Ingrese un valor de altura, peso, presión, temperatura o dato dinámico"
               [(ngModel)]="specificDataFilter"
               (ngModelChange)="filterBySpecificData($event)"
             />
@@ -391,21 +391,21 @@
           </div>
           @if (selectedAppointment?.datosDinamicos) {
 
-            @if (dinamicos[0].clave  != null) {
+            @if (dinamicos[0]) {
   
               <div >
                 <h6>{{dinamicos[0].clave}}</h6>
                 <p>{{ dinamicos[0].valor }}</p>
               </div>
             }
-            @if (dinamicos[1].clave  != null) {
+            @if (dinamicos[1]) {
   
               <div >
                 <h6>{{dinamicos[1].clave}}</h6>
                 <p>{{ dinamicos[1].valor }}</p>
               </div>
             }
-            @if (dinamicos[2].clave  != null) {
+            @if (dinamicos[2]) {
   
               <div >
                 <h6>{{dinamicos[2].clave}}</h6>

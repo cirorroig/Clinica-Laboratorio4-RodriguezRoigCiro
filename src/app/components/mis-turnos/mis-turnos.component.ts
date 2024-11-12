@@ -115,8 +115,8 @@ export class MisTurnosComponent implements OnInit {
   });
 
   selectedSpecialist: string | undefined;
-  dinamicos :{ clave: string; valor: string }[] =[];
-  constructor(private firestore: Firestore, private auth: Auth) {}
+  dinamicos: { clave: string; valor: string }[] = [];
+  constructor(private firestore: Firestore, private auth: Auth) { }
 
   async ngOnInit() {
     await this.checkUserRole();
@@ -124,11 +124,6 @@ export class MisTurnosComponent implements OnInit {
     await this.loadSpecialties();
     await this.loadSpecialists();
     await this.loadPatients();
-  }
-
-  filterBySpecificData(searchValue: string) {
-    this.specificDataFilter = searchValue.toLowerCase();
-    this.applyFilters();
   }
 
   private async checkUserRole() {
@@ -284,10 +279,10 @@ export class MisTurnosComponent implements OnInit {
       const querySnapshot = await getDocs(specialistsQuery);
       this.specialists = querySnapshot.docs.map(
         (doc) =>
-          ({
-            uid: doc.id,
-            ...doc.data(),
-          } as Specialist)
+        ({
+          uid: doc.id,
+          ...doc.data(),
+        } as Specialist)
       );
     } catch (error) {
       console.error('Error loading specialists:', error);
@@ -319,27 +314,69 @@ export class MisTurnosComponent implements OnInit {
 
   private applyFilters() {
     this.filteredAppointments = this.appointments.filter((appointment) => {
-      const matchSpecialty =
-        !this.selectedSpecialty ||
-        appointment.especialidad === this.selectedSpecialty;
-      const matchPatient =
-        !this.selectedPatient ||
-        appointment.uidPaciente === this.selectedPatient;
-      const matchSpecialist =
-        !this.selectedSpecialist ||
-        appointment.uidEspecialista === this.selectedSpecialist;
 
-      // Add specific data filtering
+  
+      // Filtrado por especialidad
+      const matchSpecialty =
+        !this.selectedSpecialty || appointment.especialidad === this.selectedSpecialty;
+  
+      // Filtrado por paciente
+      const matchPatient =
+        !this.selectedPatient || appointment.uidPaciente === this.selectedPatient;
+  
+      // Filtrado por especialista
+      const matchSpecialist =
+        !this.selectedSpecialist || appointment.uidEspecialista === this.selectedSpecialist;
+  
+      // Filtrado por datos específicos (altura, peso, temperatura, presión)
       const matchSpecificData =
         !this.specificDataFilter ||
         appointment.altura?.toString().includes(this.specificDataFilter) ||
         appointment.peso?.toString().includes(this.specificDataFilter) ||
         appointment.temperatura?.toString().includes(this.specificDataFilter) ||
         appointment.presion?.toString().includes(this.specificDataFilter);
-
-      return matchSpecialty && matchPatient && matchSpecificData && matchSpecialist;
+  
+      // Filtrado por datos dinámicos
+      const matchDynamicData =
+        !this.specificDataFilter ||
+        appointment.datosDinamicos?.some((item) => {
+          const claveLower = item.clave ? item.clave.trim().toLowerCase() : ''; // Normalizamos la clave
+          const valorLower = item.valor ? item.valor.toString().trim().toLowerCase() : ''; // Normalizamos el valor
+  
+          // Búsqueda en clave o valor
+          const isClaveMatch = claveLower.includes(this.specificDataFilter.toLowerCase());
+          const isValorMatch = valorLower.includes(this.specificDataFilter.toLowerCase());
+  
+  
+          return isClaveMatch || isValorMatch; // Devolver true si coincide con clave o valor
+        });
+  
+      // Evaluación final: Combinación de todos los filtros
+      const finalMatch = (this.selectedSpecialty ? matchSpecialty : true) &&
+                         (this.selectedPatient ? matchPatient : true) &&
+                         (this.selectedSpecialist ? matchSpecialist : true) &&((this.specificDataFilter ? matchSpecificData : true) ||
+                         (this.specificDataFilter ? matchDynamicData : true))
+                         ;
+  
+  
+      return finalMatch;
     });
+  
+
   }
+  
+  
+  
+  
+  
+  filterBySpecificData(searchValue: string) {
+    this.specificDataFilter = searchValue.toLowerCase();
+    this.applyFilters();
+
+    
+  }
+
+
   getPatientName(uid: string): string {
     const patient = this.patients.find((p) => p.uid === uid);
     return patient
@@ -378,15 +415,15 @@ export class MisTurnosComponent implements OnInit {
     this.modalAction = 'view';
     this.showModal = true;
     this.ratingForm.reset();
-    console.log("aca",this.selectedAppointment.datosDinamicos);
+    console.log("aca", this.selectedAppointment.datosDinamicos);
   }
   async openRateModal(appointment: Appointment) {
     this.selectedAppointment = appointment;
     this.modalTitle = 'Calificar Atencion';
     this.modalAction = 'rate';
     this.showModal = true;
-    
-    
+
+
   }
   async acceptAppointment(appointment: Appointment) {
     try {
@@ -443,20 +480,26 @@ export class MisTurnosComponent implements OnInit {
         case 'finish':
           if (!this.diagnosisForm.valid) return;
 
-          let dynamicData = [
-            {
+          let dynamicData = [];
+
+
+          if (this.diagnosisForm.get('clave0')?.value) {
+            dynamicData.push( {
               clave: this.diagnosisForm.get('clave0')?.value,
               valor: this.diagnosisForm.get('valor0')?.value,
-            },
-            {
+            })
+          }
+          if (this.diagnosisForm.get('clave1')?.value) {
+            dynamicData.push( {
               clave: this.diagnosisForm.get('clave1')?.value,
               valor: this.diagnosisForm.get('valor1')?.value,
-            },
-            {
+            })
+          }if (this.diagnosisForm.get('clave2')?.value) {
+            dynamicData.push( {
               clave: this.diagnosisForm.get('clave2')?.value,
               valor: this.diagnosisForm.get('valor2')?.value,
-            },
-          ];
+            })
+          }
 
           // Realizar el update con todos los datos del formulario y los datos dinámicos formateados
           await updateDoc(appointmentRef, {
@@ -509,8 +552,8 @@ export class MisTurnosComponent implements OnInit {
     return this.isSpecialist
       ? appointment.status === AppointmentStatus.ACCEPTED
       : appointment.status !== AppointmentStatus.COMPLETED &&
-          appointment.status !== AppointmentStatus.REJECTED &&
-          appointment.status !== AppointmentStatus.CANCELLED;
+      appointment.status !== AppointmentStatus.REJECTED &&
+      appointment.status !== AppointmentStatus.CANCELLED;
   }
 
   canRejectAppointment(appointment: Appointment): boolean {
